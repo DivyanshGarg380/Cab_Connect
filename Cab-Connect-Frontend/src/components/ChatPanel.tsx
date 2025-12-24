@@ -1,0 +1,125 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRides } from '@/contexts/RideContext';
+import { Button } from '@/components/ui/button';
+import { X, Send, Users } from 'lucide-react';
+import { format } from 'date-fns';
+
+interface ChatPanelProps {
+  rideId: string;
+  onClose: () => void;
+}
+
+export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
+  const { user } = useAuth();
+  const { rides, messages, sendMessage } = useRides();
+  const [newMessage, setNewMessage] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const ride = rides.find(r => r.id === rideId);
+  const rideMessages = messages[rideId] || [];
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [rideMessages]);
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newMessage.trim()) {
+      sendMessage(rideId, newMessage);
+      setNewMessage('');
+    }
+  };
+
+  if (!ride) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm lg:relative lg:inset-auto lg:bg-transparent lg:backdrop-blur-none">
+      <div className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-card border-l border-border shadow-lg flex flex-col animate-slide-up lg:relative lg:animate-none">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <div>
+            <h3 className="font-semibold text-foreground">Group Chat</h3>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Users className="w-3 h-3" />
+              {ride.participants.length} members
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Participants */}
+        <div className="px-4 py-3 border-b border-border bg-secondary/30">
+          <div className="flex flex-wrap gap-2">
+            {ride.participants.map(p => (
+              <span
+                key={p.userId}
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-background border border-border"
+              >
+                {p.userName}
+                {p.userId === ride.creatorId && (
+                  <span className="ml-1 text-primary">★</span>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {rideMessages.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              <p className="text-sm">No messages yet</p>
+              <p className="text-xs mt-1">Start the conversation!</p>
+            </div>
+          ) : (
+            rideMessages.map(msg => {
+              const isOwn = msg.senderId === user?.id;
+              return (
+                <div
+                  key={msg.id}
+                  className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                      isOwn
+                        ? 'bg-primary text-primary-foreground rounded-br-md'
+                        : 'bg-secondary text-secondary-foreground rounded-bl-md'
+                    }`}
+                  >
+                    {!isOwn && (
+                      <p className="text-xs font-medium opacity-70 mb-1">{msg.senderName}</p>
+                    )}
+                    <p className="text-sm">{msg.content}</p>
+                    <p className={`text-[10px] mt-1 ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
+                      {format(new Date(msg.timestamp), 'h:mm a')}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <form onSubmit={handleSend} className="p-4 border-t border-border">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 input-styled py-2"
+            />
+            <Button type="submit" size="icon" variant="gradient" disabled={!newMessage.trim()}>
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
