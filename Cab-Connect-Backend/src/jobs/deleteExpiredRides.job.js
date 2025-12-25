@@ -1,5 +1,5 @@
 import Ride from "../models/Ride.model.js"
-import Message from "../models/Message.model.js"
+import Message  from "../models/Message.model.js"
 
 export const deleteExpiredRides = async () => {
     try {
