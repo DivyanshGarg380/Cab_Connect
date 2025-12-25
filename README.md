@@ -147,7 +147,12 @@ cd cab_connect
 ```
 ### Backend Setup
 ```bash
-cd Cab-Connect-Frontend/Cab-Connect-Backend
+cd Cab_Connect/Cab-Connect-Backend
+npm install
+```
+### Frontend Setup
+```bash
+cd Cab_Connect/Cab-Connect-Frontend
 npm install
 ```
 ### Create ```.env``` file:
