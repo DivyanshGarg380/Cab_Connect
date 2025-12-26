@@ -6,6 +6,7 @@ import User from '../models/User.model.js';
 import { generateRefreshToken, generateAccessToken } from '../utils/token.js';
 import  jwt  from 'jsonwebtoken';
 import { otpLimit } from '../middleware/rateLimit.middleware.js';
+import authMiddleware from "../middleware/auth.middleware.js"
 
 const router = express.Router();
 
@@ -127,5 +128,29 @@ router.post('/refresh', async (req, res) => {
         res.status(403).json({ message: 'Invalid refresh token' });
     }
 })
+
+router.post('/admin-login', authMiddleware, async (req, res)=> {
+    const adminPassword = req.body?.adminPassword;
+    console.log(adminPassword);
+    if(!adminPassword){
+        return res.status(400).json({
+            message: 'Admin password required',
+        });
+    }
+    
+    if(adminPassword !== process.env.ADMIN_PASSWORD){
+        return res.status(403).json({
+            message: 'Invalid admin credentials',
+        });
+    }
+
+    await User.findByIdAndUpdate(req.userId,{
+        role: 'admin',
+    });
+
+    res.json({
+        message: 'Admin access granted',
+    });
+});
 
 export default router;

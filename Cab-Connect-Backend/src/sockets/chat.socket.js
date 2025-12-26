@@ -1,6 +1,6 @@
 import jwt, { decode } from 'jsonwebtoken';
 import Ride from '../models/Ride.model.js';
-import Message from '../models/message.model.js';
+import Message from '../models/Message.model.js';
 
 export const initChatSocket = (io) => {
     io.use((socket, next) => {
@@ -21,7 +21,7 @@ export const initChatSocket = (io) => {
 
     io.on('connection', (socket) => {
         console.log(`Socket connected: ${socket.userId}`);
-
+        socket.join(socket.userId);
         // join ride chat
         socket.on('join-ride', async (rideId) => {
             const ride = await Ride.findById(rideId);

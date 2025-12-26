@@ -19,7 +19,7 @@ router.post('/', authMiddleware, async (req, res) => {
         if (
             !isNonEmptyString(source) ||
             !isNonEmptyString(destination) ||
-            !isValidDate(dateTime)
+            !isValidDate(departureTime)
         ) {
         return res.status(400).json({
             message: 'Invalid ride input',

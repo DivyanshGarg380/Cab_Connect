@@ -11,12 +11,13 @@ app.use(apiLimit);
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
-app.use('/admin', adminRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('Cab Connect Backend is running');
 });
 app.use('/auth', authRoutes);
 app.use('/rides', rideRoutes);
+app.use('/admin', adminRoutes);
 
 export default app;
