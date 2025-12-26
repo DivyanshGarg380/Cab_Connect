@@ -50,6 +50,5 @@ rideSchema.pre("save", function (next) {
     
 });
 
-const Ride = mongoose.model("Ride", rideSchema);
-
-export default Ride;
+export default mongoose.models.Ride ||
+  mongoose.model('Ride', rideSchema);

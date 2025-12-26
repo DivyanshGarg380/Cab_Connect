@@ -2,6 +2,8 @@ import express from 'express';
 import Ride from '../models/Ride.model.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 import { mongo } from 'mongoose';
+import { isNonEmptyString, isValidDate } from '../utils/validate.js';
+import { io } from '../server.js'
 
 const router = express.Router();
 
@@ -14,8 +16,14 @@ router.post('/', authMiddleware, async (req, res) => {
     try {
         const { source, destination, departureTime } = req.body;
 
-        if (!source || !destination || !departureTime) {
-            return res.status(400).json({ message: 'All fields are required' });
+        if (
+            !isNonEmptyString(source) ||
+            !isNonEmptyString(destination) ||
+            !isValidDate(dateTime)
+        ) {
+        return res.status(400).json({
+            message: 'Invalid ride input',
+        });
         }
 
         const rideDate = new Date(departureTime);
@@ -130,7 +138,10 @@ router.delete('/:id', authMiddleware, async (req, res) => {
             return res.status(403).json({ message: 'Only the creator can delete this ride' });
         }
 
-        await Ride.deleteOne({ _id: rideId });
+        io.to(rideId).emit('ride-ended', {
+            message: 'Ride was deleted by the creator',
+        });
+        
         res.json({ message: 'Ride deleted successfully' });
 
     }catch(error) {

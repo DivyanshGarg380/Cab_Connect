@@ -1,5 +1,6 @@
 import Ride from "../models/Ride.model.js"
 import Message  from "../models/Message.model.js"
+import { io } from '../server.js'
 
 export const deleteExpiredRides = async () => {
     try {
@@ -20,6 +21,12 @@ export const deleteExpiredRides = async () => {
         // deleting ride now
         const rideResult = await Ride.deleteMany({
             _id: { $in: rideIds },
+        });
+
+        rideIds.forEach((id) => {
+            io.to(id.toString()).emit('ride-ended', {
+                message: 'Ride Expired',
+            });
         });
 
         console.log(

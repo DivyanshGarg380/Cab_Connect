@@ -29,6 +29,10 @@ export const initChatSocket = (io) => {
                 return socket.emit('error', 'Ride not found');
             }
 
+            if(ride.status === 'expired'){
+                return socket.emit('error', 'Ride has Expired');
+            }
+
             const isParticipant = ride.participants.some(
                 (p) => p.toString() === socket.userId
             );
@@ -44,8 +48,12 @@ export const initChatSocket = (io) => {
         // sending messages
         socket.on('send-message', async ({ rideId, content }) => {
             const ride = await Ride.findById(rideId);
-            if (!ride) {
-                return socket.emit('error', 'Ride not found');
+            if(!ride || ride.status === 'expired'){
+                socket.emit('ride-ended', {
+                    message: 'This ride is no longer active',
+                });
+                socket.leave(rideId);
+                return;
             }
             const isParticipant = ride.participants.some(
                 (p) => p.toString() === socket.userId
@@ -56,6 +64,10 @@ export const initChatSocket = (io) => {
 
             if (!content || !content.trim()) {
                 return socket.emit('error', 'Message cannot be empty');
+            }
+
+            if(content.length > 500){
+                return socket.emit('error', 'Message to long');
             }
 
             const message = await Message.create({

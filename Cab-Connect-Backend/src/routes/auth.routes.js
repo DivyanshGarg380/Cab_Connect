@@ -5,10 +5,11 @@ import Otp from '../models/Otp.model.js';
 import User from '../models/User.model.js';
 import { generateRefreshToken, generateAccessToken } from '../utils/token.js';
 import  jwt  from 'jsonwebtoken';
+import { otpLimit } from '../middleware/rateLimit.middleware.js';
 
 const router = express.Router();
 
-router.post('/request-otp', async (req, res) => {
+router.post('/request-otp', otpLimit ,  async (req, res) => {
     try {
         let { email } = req.body;
         if(!email) {
