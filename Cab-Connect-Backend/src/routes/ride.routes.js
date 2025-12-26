@@ -3,7 +3,8 @@ import Ride from '../models/Ride.model.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 import { mongo } from 'mongoose';
 import { isNonEmptyString, isValidDate } from '../utils/validate.js';
-import { io } from '../server.js'
+import { io } from '../server.js';
+import banMiddleware from "../middleware/ban.middleware.js"
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ const router = express.Router();
     Creator auto join so 1/4
 */
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, banMiddleware, async (req, res) => {
     try {
         const { source, destination, departureTime } = req.body;
 
