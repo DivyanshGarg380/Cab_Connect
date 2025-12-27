@@ -83,7 +83,31 @@ router.post('/ban/:userId', authMiddleware, adminMiddleware, async (req, res) =>
         console.log('Ban user Error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
-})
+});
+
+router.post('/unban/:userId', authMiddleware, adminMiddleware, async( req, res)=> {
+    try{
+        const user = await User.findById(req.params.userId);
+
+        if(!user){
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        if(user.isPermanentlyBanned){
+            return res.status(400).json({
+                message: 'Cannot Unban permanently banned user',
+            });
+        }
+
+        user.banUntil = null;
+        await user.save();
+
+        res.json({ message: 'User unbanned successfully'});
+    } catch(error){
+        console.log('Unban user error: ', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 
 export default router;
