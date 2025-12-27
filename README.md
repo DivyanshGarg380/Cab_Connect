@@ -1,57 +1,68 @@
-# 🚕 Cab Connect  
-### A Secure, College-Only Cab Sharing Platform
+# 🚕 Cab Connect — College Ride Sharing Platform
 
-Cab Connect is a **production-grade full-stack web application** designed to help college students efficiently share cab rides while ensuring **privacy, security, and trust**.  
-It replaces unstructured WhatsApp groups with a **structured, searchable, and secure platform**.
-
----
-
-## 🎯 Problem Statement
-
-Students frequently share airport and city cab rides via WhatsApp groups.  
-This approach suffers from:
-- Message clutter & poor discoverability
-- No structured communication per ride
-
-**Cab Connect solves this with a college-verified, ride-centric system.**
+Cab Connect is a secure, real-time ride-sharing platform built specifically for college students to coordinate shared cab rides (e.g., airport travel).  
+It replaces messy WhatsApp groups with a **structured, secure, and moderated system**.
 
 ---
 
 ## ✨ Key Features
 
-- 🎓 **College Email Authentication**
-  - Only users with `@learner.manipal.edu` can register
-- 🚗 **Ride Creation & Discovery**
-  - Search rides by date & time
-- 👥 **Automatic Capacity Enforcement**
-  - Maximum **4 members per ride**
-- 💬 **Ride-Scoped Chat**
-  - Communication limited to ride participants
-- ⏳ **Automatic Ride Expiry**
-  - Past rides are auto-deleted via background jobs
-- 🔐 **Role-Based Authorization**
-  - Creator / Participant access control
-- 🛡 **Security-First Design**
-  - JWT authentication, protected routes, data isolation
+### 👤 Authentication & Security
+- College email–restricted OTP login
+- JWT-based session management
+- No password storage
+- Rate-limited OTP requests
+- Role-based access control (RBAC)
+
+### 🚗 Ride Management
+- Create, join, and leave rides
+- Max 4 participants per ride
+- Creator auto-joins ride
+- Ride auto-expires after travel time
+- Expired rides cleaned automatically
+
+### 💬 Real-Time Ride Chat
+- Socket.IO powered chat per ride
+- Only ride participants can chat
+- Messages stored in database
+- Chat auto-disabled if ride is deleted/expired
+
+### 🛡️ Admin Moderation System
+- Secure admin escalation (OTP + admin password)
+- Admin can:
+  - View all rides
+  - Delete any ride
+  - Temporarily ban users (7 days)
+  - Permanently ban users after 3 strikes
+  - Unban temporarily banned users
+- Banned users:
+  - ❌ Cannot chat
+  - ❌ Cannot create rides
+  - ✅ Can still join rides
+
+### 🔔 Notifications
+- Persistent notifications stored in DB
+- Real-time socket notifications
+- Used for admin actions (ride deletion, bans)
 
 ---
 
-## 🧠 System Design Overview
+## 🏗️ System Architecture
 
 ```bash
 Client (React)
 |
-| HTTPS + JWT
-v
-API Gateway (Express)
+| REST APIs (JWT Auth)
 |
-├── Auth Service
+Express.js Backend
+├── Auth Service (OTP + Admin Escalation)
 ├── Ride Service
-├── Chat Service
-└── Cleanup Worker (Cron)
+├── Admin Moderation Service
+├── Notification Service
+├── Cleanup Jobs (Cron)
+└── Socket.IO (Chat + Realtime Events)
 |
-v
-MongoDB
+MongoDB Atlas
 ```
 ---
 
@@ -96,47 +107,101 @@ cab-connect/
 │
 └── README.md
 ```
+---
 
+## 🔐 Authentication Flow
+
+### Normal User Login
+### Email → OTP → JWT (role: user)
+### Admin Login (Privilege Escalation)
+### Email → OTP → Admin Password → role upgraded to admin
+  - Admin password stored only in `.env`
+  - No hardcoded emails
+  - No magic tokens
+---
+
+## 🧑‍⚖️ RBAC (Role-Based Access Control)
+---------------------------------------------
+| Role  | Permissions                       |
+|-------|-----------------------------------|
+| User  | Create / Join rides, Chat         |
+| Admin | All user permissions + moderation |
+---------------------------------------------
+RBAC is enforced using centralized middleware.
 
 ---
 
-## 🔐 Authentication & Authorization
+## 🚫 Ban Policy Logic
 
-- Email domain validation during signup
-- Password hashing using bcrypt
-- JWT-based stateless authentication
-- Middleware-protected routes
-- Users can only:
-  - Join rides with available slots
-  - Access chats of rides they belong to
-  - Modify rides they created
+### Temporary Ban
+- Duration: **7 days**
+- Triggered by admin
+- Blocks:
+  - Chat
+  - Ride creation
+
+### Permanent Ban
+- Triggered after **3 bans**
+- No auto-unban
+- Still allowed:
+  - Joining rides
+
+---
+
+## 🧹 Background Jobs
+
+- Automatically deletes expired rides
+- Cleans associated messages
+- Notifies connected users in real time
 
 ---
 
-## 🧾 Database Schema (High-Level)
+## 📦 Tech Stack
 
-### User
-- email
-- name
-- passwordHash
-- createdAt
+**Backend**
+- Node.js
+- Express.js
+- MongoDB (Atlas)
+- Mongoose
+- Socket.IO
+- JWT
+- bcrypt
+- express-rate-limit
 
-### Ride
-- creatorId
-- date
-- time
-- source
-- destination
-- participants[ ]
-- status (active | full | expired)
-
-### Message
-- rideId
-- senderId
-- content
-- timestamp
+**Frontend**
+- React (planned / integrated separately)
 
 ---
+
+## 📂 Project Structure
+```bash
+src/
+├── app.js
+├── server.js
+├── routes/
+│ ├── auth.routes.js
+│ ├── ride.routes.js
+│ ├── admin.route.js
+│ ├── notification.route.js
+├── models/
+│ ├── User.js
+│ ├── Ride.js
+│ ├── Message.js
+│ ├── Notification.js
+│ ├── Otp.js
+├── middleware/
+│ ├── auth.middleware.js
+│ ├── admin.middleware.js
+│ ├── ban.middleware.js
+│ ├── rateLimit.middleware.js
+├── sockets/
+│ └── chat.socket.js
+├── jobs/
+│ └── deleteExpiredRides.job.js
+├── utils/
+│ ├── generateOtp.js
+│ └── validate.js
+```
 
 ## 🚀 Local Setup
 
