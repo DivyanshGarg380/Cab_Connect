@@ -1,73 +1,100 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '@/types';
 import { toast } from 'sonner';
-
+interface User {
+  id: string;
+  email: string;
+  role: 'user' | 'admin';
+}
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  isAdmin: boolean;
-  login: (email: string) => Promise<boolean>;
-  logout: () => void;
   isAuthenticated: boolean;
+  isAdmin: boolean;
+  login: (token: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const COLLEGE_DOMAIN = '@college.edu'; // Change this to your actual college domain
-const ADMIN_EMAIL = 'himynameisdivyansh@gmail.com'; // Admin email (case-insensitive)
+const API_BASE = 'http://localhost:5000';
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode}){
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  /* Loading User from token on app start */
   useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('cabshare_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    const token = localStorage.getItem('accessToken');
+    if(!token){
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+
+    fetch(`${API_BASE}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }).then( async (res) => {
+      if (!res.ok) throw new Error('Session expired');
+      return res.json();
+    }).then((data) => {
+        setUser(data.user);
+    }).catch(() => {
+      localStorage.removeItem('accessToken');
+      setUser(null);
+    }).finally(() => {
+      setIsLoading(false);
+    })
   }, []);
 
-  const login = async (email: string): Promise<boolean> => {
-    // Validate college email
-    if (!email.endsWith(COLLEGE_DOMAIN) && !email.endsWith('@gmail.com')) {
-      toast.error(`Please use your college email (${COLLEGE_DOMAIN})`);
-      return false;
+  /* Login using JWT Toeken */
+
+  const login = async (token: string) => {
+    localStorage.setItem('accessToken', token);
+
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      toast.error('Failed to load user');
+      throw new Error('Auth failed');
     }
 
-    // Simulate login - in production, this would be actual auth
-    const newUser: User = {
-      id: crypto.randomUUID(),
-      email,
-      name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-    };
-
-    setUser(newUser);
-    localStorage.setItem('cabshare_user', JSON.stringify(newUser));
-    toast.success('Welcome to CabShare!');
-    return true;
+    const data = await res.json();
+    setUser(data.user);
+    toast.success('Logged in successfully');
   };
 
+  /* Logout */
   const logout = () => {
+    localStorage.removeItem('accessToken');
     setUser(null);
-    localStorage.removeItem('cabshare_user');
-    toast.info('You have been logged out');
+    toast.info('Logged out');
   };
-
-  const isAdmin = user?.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAdmin, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        isAdmin: user?.role === 'admin',
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  const ctx = useContext(AuthContext);
+  if(!ctx){
+    throw new Error('useAuth must be used inside AuthProvider');
   }
-  return context;
+  return ctx;
 }

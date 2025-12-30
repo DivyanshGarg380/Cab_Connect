@@ -18,6 +18,8 @@ app.use(cookieParser());
 app.get('/', (req, res) => {
   res.send('Cab Connect Backend is running');
 });
+app.set("trust proxy", 1);
+
 app.use('/auth', authRoutes);
 app.use('/rides', rideRoutes);
 app.use('/admin', adminRoutes);

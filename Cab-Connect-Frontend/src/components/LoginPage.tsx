@@ -14,38 +14,107 @@ export function LoginPage () {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const navigate = useNavigate();
+  const [canResendOtp, setCanResendOtp] = useState(false);
 
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
 
+  const resetOtpFlow = () => {
+    setIsOtpSent(false);
+    setOtp('');
+  };
+
+
   const handleSendOtp = async () => {
     if(!email) return;
-    setIsLoading(true);
+    try{
+      setIsLoading(true);
+      const res = await fetch('http://localhost:5000/auth/request-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
 
-    await new Promise((res) => setTimeout(res, 800));
+      const data = await res.json();
 
-    setIsOtpSent(true);
-    setIsLoading(false);
+      if(!res.ok){
+        toast.error(data.message || 'Failed to send OTP');
+        return;
+      }
+
+      toast.success('OTP sent successfully');
+      setIsOtpSent(true);
+      setCanResendOtp(false);
+      setOtp('');
+    } catch(error){
+      toast.error('Server error while sending OTP');
+    } finally{
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if(showAdminPassword && adminPassword !== 'admin123'){
-      toast.error("Incorrect Admin Password")
-      setIsLoading(false);
-      return;
-    }
+    try{
+      const res = await fetch('http://localhost:5000/auth/verify-otp',{
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp }),
+      });
 
-    if(otp !== '123456'){
-      toast.error("Incorrect OTP")
-      setIsLoading(false);
-      return;
-    }
+      const data = await res.json();
 
-    await login(email);
-    setIsLoading(false);
+      if (!res.ok) {
+        toast.error(data.message || 'Invalid OTP');
+        if (
+          data.code === 'OTP_ATTEMPTS_EXCEEDED' ||
+          data.code === 'OTP_EXPIRED'
+        ) {
+          setIsOtpSent(false);
+          setCanResendOtp(true);
+          setOtp('');
+        }
+        return;
+      }
+      const token = data.accessToken;
+
+      localStorage.setItem('accessToken', token);
+      if(showAdminPassword){
+        const adminRes = await fetch(
+          'http://localhost:5000/auth/admin-login',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ adminPassword }),
+          }
+        );
+
+        const adminData = await adminRes.json();
+
+        if (!adminRes.ok) {
+          toast.error(adminData.message || 'Admin login failed');
+          return;
+        }
+      }
+
+      await login(token);
+      toast.success('Login successful');
+      
+
+    } catch(error){
+      toast.error('Login failed');
+    } finally{
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -157,12 +226,24 @@ export function LoginPage () {
                   </div>
                 )}
 
-                {!isOtpSent ? (
+
+                {/* Resend OTP */}
+                {canResendOtp ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleSendOtp}
+                    disabled={isLoading}
+                  >
+                    Resend OTP
+                  </Button>
+                ) : !isOtpSent ? (
                   <Button
                     type="button"
                     onClick={handleSendOtp}
                     className="w-full"
-                    variant='gradient'
+                    variant="gradient"
                     disabled={isLoading}
                   >
                     Send OTP
@@ -186,18 +267,6 @@ export function LoginPage () {
             >
               {showAdminPassword ? '← Back to regular login' : 'Admin Login →'}
             </button>
-
-            <div className="bg-accent/50 border border-transparent rounded-lg p-4">
-              <p className="text-sm font-medium text-gray-700 mb-2">Demo Mode:</p>
-              <p className="text-xs text-gray-600">
-                Enter any email ending with @gmail.com or @college.edu to test the app
-              </p>
-              {showAdminPassword && (
-                <p className="text-xs text-gray-600 mt-2">
-                  Admin password: <span className="font-mono font-semibold">admin123</span>
-                </p>
-              )}
-            </div>
           </div>
         </div>
         </div>
