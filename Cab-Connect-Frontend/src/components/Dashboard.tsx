@@ -6,28 +6,43 @@ import { RideCard } from './RideCard';
 import { ChatPanel } from './ChatPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, Calendar, Users, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function Dashboard() {
-  const { rides, getUserRides } = useRides();
+  const { rides } = useRides();
   const [activeChatRide, setActiveChatRide] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const { user }  = useAuth();
 
   const sortedRides = useMemo(() => {
     return [...rides].sort((a, b) => {
-      // Active rides first
       if (a.status === 'active' && b.status !== 'active') return -1;
       if (b.status === 'active' && a.status !== 'active') return 1;
-      // Then by date
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
+
+      return (
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
     });
   }, [rides]);
 
-  const activeRides = useMemo(() => 
-    sortedRides.filter(r => r.status === 'active'), 
+  const activeRides = useMemo(
+    () => sortedRides.filter((r) => r.status === 'active'),
     [sortedRides]
   );
 
-  const myRides = useMemo(() => getUserRides(), [getUserRides, rides]);
+  const expiredRides = useMemo(
+    () => sortedRides.filter((r) => r.status === 'expired'),
+    [sortedRides]
+  );
+
+  const myRides = useMemo(() => {
+    if (!user) return [];
+    return rides.filter(
+      (r) =>
+        r.creator._id === user.id ||
+        r.participants.some((p) => p._id === user.id)
+    );
+  }, [rides, user]);
 
   const displayRides = activeTab === 'all' ? activeRides : activeTab === 'my' ? myRides : sortedRides;
 
@@ -99,7 +114,7 @@ export function Dashboard() {
                 ) : (
                   activeRides.map(ride => (
                     <RideCard 
-                      key={ride.id} 
+                      key={ride._id} 
                       ride={ride} 
                       onOpenChat={setActiveChatRide}
                     />
@@ -113,7 +128,7 @@ export function Dashboard() {
                 ) : (
                   myRides.map(ride => (
                     <RideCard 
-                      key={ride.id} 
+                      key={ride._id} 
                       ride={ride} 
                       onOpenChat={setActiveChatRide}
                     />
@@ -122,13 +137,13 @@ export function Dashboard() {
               </TabsContent>
 
               <TabsContent value="expired" className="space-y-4">
-                {sortedRides.filter(r => r.status === 'expired').length === 0 ? (
+                {expiredRides.length === 0 ? (
                   <EmptyState message="No expired rides yet." />
                 ) : (
-                  sortedRides.filter(r => r.status === 'expired').map(ride => (
-                    <RideCard 
-                      key={ride.id} 
-                      ride={ride} 
+                  expiredRides.map((ride) => (
+                    <RideCard
+                      key={ride._id}
+                      ride={ride}
                       onOpenChat={setActiveChatRide}
                     />
                   ))
