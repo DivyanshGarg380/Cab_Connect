@@ -226,12 +226,11 @@ export function LoginPage () {
                   </div>
                 )}
 
-
                 {/* Resend OTP */}
                 {canResendOtp ? (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="gradient"
                     className="w-full"
                     onClick={handleSendOtp}
                     disabled={isLoading}
