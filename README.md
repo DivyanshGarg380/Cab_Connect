@@ -85,9 +85,9 @@ MongoDB Atlas
 
 ## 📂 Project Structure
 ```bash
-cab-connect/
+Cab_Connect/
 │
-├── frontend/
+├── Cab_Connect-Frontend/
 │ ├── src/
 │ │ ├── components/
 │ │ ├── pages/
@@ -95,7 +95,7 @@ cab-connect/
 │ │ └── services/
 │ └── package.json
 │
-├── backend/
+├── Cab_Connect-Backend/
 │ ├── models/
 │ ├── controllers/
 │ ├── routes/
@@ -184,11 +184,11 @@ src/
 │ ├── admin.route.js
 │ ├── notification.route.js
 ├── models/
-│ ├── User.js
-│ ├── Ride.js
-│ ├── Message.js
-│ ├── Notification.js
-│ ├── Otp.js
+│ ├── User.model.js
+│ ├── Ride.model.js
+│ ├── Message.model.js
+│ ├── Notification.model.js
+│ ├── Otp.model.js
 ├── middleware/
 │ ├── auth.middleware.js
 │ ├── admin.middleware.js
