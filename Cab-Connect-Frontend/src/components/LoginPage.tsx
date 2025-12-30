@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Plane, Users, MessageCircle, Mail } from 'lucide-react';
+import { Input } from '../components/ui/input';
 
-export function LoginPage() {
+export function LoginPage () {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +69,7 @@ export function LoginPage() {
         <div className="lg:w-1/2 p-8 lg:p-16 flex items-center justify-center">
           <div className="w-full max-w-md">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Welcome Back</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
               <p className="text-muted-foreground">Sign in with your college email to continue</p>
             </div>
 
@@ -80,8 +85,8 @@ export function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="yourname@college.edu"
-                    className="input-styled pl-12"
+                    placeholder="yourname@learner.manipal.edu"
+                    className="input-styled pl-12 w-full"
                     required
                   />
                 </div>
@@ -90,35 +95,58 @@ export function LoginPage() {
                 </p>
               </div>
 
-              <Button
-                type="submit"
-                variant="gradient"
-                size="lg"
-                className="w-full"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Signing in...
-                  </span>
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-            </form>
+              {showAdminPassword && (
+                <>
+                  <div>
+                    <label htmlFor="adminPassword" className="block text-sm font-medium text-foreground mb-2">
+                      Admin Password
+                    </label>
+                    <Input
+                      id="adminPassword"
+                      type="password"
+                      placeholder="Enter admin password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="input-styled h-12 w-full"
+                    />
+                  </div>
+                </>
+              )}
 
-            <div className="mt-8 p-4 rounded-lg bg-accent/50 border border-accent">
-              <p className="text-sm text-center text-accent-foreground">
-                <strong>Demo Mode:</strong> Enter any email ending with @gmail.com or @college.edu to test the app
+            <Button
+              type="submit"
+              variant="gradient"
+              size="lg"
+              className="w-full"
+              disabled={isLoading}
+            >
+              Sign In
+            </Button>
+          </form>
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={() => setShowAdminPassword(!showAdminPassword)}
+              className="text-sm text-primary hover:underline font-medium"
+            >
+              {showAdminPassword ? '← Back to regular login' : 'Admin Login →'}
+            </button>
+
+            <div className="bg-accent/50 border border-transparent rounded-lg p-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">Demo Mode:</p>
+              <p className="text-xs text-gray-600">
+                Enter any email ending with @gmail.com or @college.edu to test the app
               </p>
+              {showAdminPassword && (
+                <p className="text-xs text-gray-600 mt-2">
+                  Admin password: <span className="font-mono font-semibold">admin123</span>
+                </p>
+              )}
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
   );
-}
+};
