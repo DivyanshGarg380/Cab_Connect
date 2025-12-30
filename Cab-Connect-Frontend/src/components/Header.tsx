@@ -5,8 +5,20 @@ import { Plane, LogOut, User, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 export function Header() {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isLoading } = useAuth();
   const location = useLocation();
+  if(isLoading) return null;
+
+  const getDisplayName = (email: string) => {
+  const localPart = email.split('mit')[0];
+
+  return localPart
+    .replace(/\d+/g, '')               
+    .replace(/[._]/g, ' ')            
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -50,12 +62,12 @@ export function Header() {
               Admin
             </div>
           )}
-          
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary">
-            <User className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium text-secondary-foreground">{user?.name}</span>
-          </div>
-          
+          {user && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-secondary-foreground">{getDisplayName(user.email)}</span>
+            </div>
+          )}
           <Button variant="ghost" size="sm" onClick={logout} className="gap-2">
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Logout</span>
