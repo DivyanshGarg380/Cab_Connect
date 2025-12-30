@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useRides } from '@/contexts/RideContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, Clock, Plane, Plus } from 'lucide-react';
+import { Calendar, Clock, Plane, Plus, MapPin, ChevronDown  } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function CreateRideModal() {
@@ -11,27 +11,32 @@ export function CreateRideModal() {
   const [time, setTime] = useState('');
   const [flightDetails, setFlightDetails] = useState('');
   const { createRide } = useRides();
+  const [destination, setDestination] = useState<'airport' | 'campus'>('airport');
 
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const selectedDate = new Date(`${date}T${time}`);
     if (selectedDate < new Date()) {
       toast.error('Please select a future date and time');
       return;
     }
 
-    createRide(date, time, flightDetails || undefined);
-    setOpen(false);
-    setDate('');
-    setTime('');
-    setFlightDetails('');
+    try {
+      await createRide(date, time, destination);
+      toast.success('Ride created successfully');
+      setOpen(false);
+      setDate('');
+      setTime('');
+      setFlightDetails('');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create ride');
+    }
   };
 
-  // Get tomorrow's date as minimum
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
+  const today = new Date();
+  const minDate = today.toISOString().split('T')[0];
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -67,6 +72,24 @@ export function CreateRideModal() {
 
           <div>
             <label className="block text-sm font-medium text-foreground mb-2">
+              <MapPin className="w-4 h-4 inline mr-2" />
+              Destination
+            </label>
+            <select
+              value={destination}
+              onChange={(e) =>
+                setDestination(e.target.value as 'airport' | 'campus')
+              }
+              className="input-styled"
+              required
+            >
+              <option value="airport">Airport (IXE)</option>
+              <option value="campus">Campus</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
               <Clock className="w-4 h-4 inline mr-2" />
               Departure Time
             </label>
@@ -77,9 +100,6 @@ export function CreateRideModal() {
               className="input-styled"
               required
             />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Time you want to leave for the airport
-            </p>
           </div>
 
           <div>

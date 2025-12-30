@@ -15,28 +15,30 @@ const router = express.Router();
 
 router.post('/', authMiddleware, banMiddleware, async (req, res) => {
     try {
-        const { source, destination, departureTime } = req.body;
+        const { destination, departureTime } = req.body;
+        const rideDate = new Date(departureTime);
+        const date = rideDate.toISOString().split('T')[0];
+
+        console.log(`${destination} , ${departureTime}`)
 
         if (
-            !isNonEmptyString(source) ||
             !isNonEmptyString(destination) ||
-            !isValidDate(departureTime)
+            isNaN(rideDate.getTime())
         ) {
         return res.status(400).json({
             message: 'Invalid ride input',
         });
         }
 
-        const rideDate = new Date(departureTime);
         if(rideDate <= new Date()) {
             return res.status(400).json({ message: 'Departure time must be in the future' });
         }
         
         const ride = await Ride.create({
             creator: req.userId,
-            source,
             destination,
             departureTime: rideDate,
+            date,
             participants: [req.userId],
             status: 'open',
         });

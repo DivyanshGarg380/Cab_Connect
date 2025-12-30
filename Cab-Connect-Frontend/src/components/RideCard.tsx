@@ -16,16 +16,13 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
   const { user } = useAuth();
 
   const isExpired = ride.status === 'expired';
-  const isCreator = user?.id === ride.creator._id;
-  const isParticipant = ride.participants.some(
-    (p) => p._id === user?.id
-  );
 
-  const creatorName = ride.creator.email
-    .split('@')[0]
-    .replace(/\d+/g, '')
-    .replace(/[._]/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  // creator is ObjectId (string)
+  const creatorId = ride.creator;
+
+  const isCreator = user?.id === ride.creator;
+
+  const isParticipant = ride.participants.includes(user?.id ?? '');
 
   const formattedDate = format(parseISO(ride.date), 'EEE, MMM d, yyyy');
 
@@ -57,7 +54,7 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
         <p className="text-sm text-muted-foreground">
           Posted by{' '}
           <span className="font-medium text-foreground">
-            {creatorName}
+            {}
           </span>
         </p>
 
@@ -71,7 +68,7 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">
-            {ride.participants.length}/{ride.maxParticipants} participants
+            {ride.participants.length}/{4} participants
           </span>
         </div>
 

@@ -7,15 +7,14 @@ const rideSchema = new mongoose.Schema(
             ref: "User",
             required: true,
         },
-
-        source: {
+        date: {
             type: String,
             required: true,
-            trim: true,
         },
         destination: {
             type: String,
             required: true,
+            enum: ['airport', 'campus'],
             trim: true,
         },
         departureTime: {

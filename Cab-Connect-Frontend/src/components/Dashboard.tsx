@@ -16,8 +16,8 @@ export function Dashboard() {
 
   const sortedRides = useMemo(() => {
     return [...rides].sort((a, b) => {
-      if (a.status === 'active' && b.status !== 'active') return -1;
-      if (b.status === 'active' && a.status !== 'active') return 1;
+      if (a.status === 'open' && b.status !== 'open') return -1;
+      if (b.status === 'open' && a.status !== 'open') return 1;
 
       return (
         new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -26,7 +26,7 @@ export function Dashboard() {
   }, [rides]);
 
   const activeRides = useMemo(
-    () => sortedRides.filter((r) => r.status === 'active'),
+    () => sortedRides.filter((r) => r.status === 'open'),
     [sortedRides]
   );
 
@@ -39,8 +39,8 @@ export function Dashboard() {
     if (!user) return [];
     return rides.filter(
       (r) =>
-        r.creator._id === user.id ||
-        r.participants.some((p) => p._id === user.id)
+        r.creator === user.id ||
+        r.participants.some((p) => p === user.id)
     );
   }, [rides, user]);
 

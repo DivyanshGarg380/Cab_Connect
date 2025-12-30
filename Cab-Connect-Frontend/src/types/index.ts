@@ -3,23 +3,18 @@ export interface User {
   email: string;
   role: 'user' | 'admin';
 }
-
 export interface RideParticipant {
   _id: string;
   email: string;
 }
-
 export interface Ride {
   _id: string;
-  creator: {
-    _id: string;
-    email: string;
-  };
-  participants: RideParticipant[];
-  date: string;          
-  time?: string;    
-  status: 'active' | 'expired';
-  maxParticipants: number;
+  creator: string;          
+  participants: string[];  
+  date: string;
+  destination: 'airport' | 'campus';
+  departureTime: string;
+  status: 'open' | 'full' | 'expired';
 }
 export interface RidesResponse {
   rides: Ride[];
