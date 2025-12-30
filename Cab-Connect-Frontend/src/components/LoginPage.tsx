@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Plane, Users, MessageCircle, Mail } from 'lucide-react';
+import { Plane, Users, MessageCircle, Mail, Key } from 'lucide-react';
 import { Input } from '../components/ui/input';
+import { toast } from 'sonner';
+
 
 export function LoginPage () {
   const [email, setEmail] = useState('');
@@ -13,9 +15,35 @@ export function LoginPage () {
   const [adminPassword, setAdminPassword] = useState('');
   const navigate = useNavigate();
 
+  const [otp, setOtp] = useState('');
+  const [isOtpSent, setIsOtpSent] = useState(false);
+
+  const handleSendOtp = async () => {
+    if(!email) return;
+    setIsLoading(true);
+
+    await new Promise((res) => setTimeout(res, 800));
+
+    setIsOtpSent(true);
+    setIsLoading(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    if(showAdminPassword && adminPassword !== 'admin123'){
+      toast.error("Incorrect Admin Password")
+      setIsLoading(false);
+      return;
+    }
+
+    if(otp !== '123456'){
+      toast.error("Incorrect OTP")
+      setIsLoading(false);
+      return;
+    }
+
     await login(email);
     setIsLoading(false);
   };
@@ -113,16 +141,43 @@ export function LoginPage () {
                 </>
               )}
 
-            <Button
-              type="submit"
-              variant="gradient"
-              size="lg"
-              className="w-full"
-              disabled={isLoading}
-            >
-              Sign In
-            </Button>
-          </form>
+              {/* OTP Section */}
+               {isOtpSent && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">OTP</label>
+                    <div className="relative">
+                      <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        placeholder="Enter 6-digit OTP"
+                        className="pl-12 h-12"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!isOtpSent ? (
+                  <Button
+                    type="button"
+                    onClick={handleSendOtp}
+                    className="w-full"
+                    variant='gradient'
+                    disabled={isLoading}
+                  >
+                    Send OTP
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    variant="gradient"
+                    className="w-full"
+                    disabled={isLoading}
+                  >
+                    Verify & Sign In
+                  </Button>
+                )}
+            </form>
           <div className="space-y-4">
             <button
               type="button"
