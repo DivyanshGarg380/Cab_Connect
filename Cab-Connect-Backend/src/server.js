@@ -24,6 +24,14 @@ const io = new Server(server, {
 
 initChatSocket(io);
 
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
+
 export { io };
 
 setInterval(expireOldRides, 5*60*1000);

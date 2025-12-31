@@ -141,6 +141,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
             return res.status(403).json({ message: 'Only the creator can delete this ride' });
         }
 
+        await Ride.findByIdAndDelete(rideId);
+
         io.to(rideId).emit('ride-ended', {
             message: 'Ride was deleted by the creator',
         });

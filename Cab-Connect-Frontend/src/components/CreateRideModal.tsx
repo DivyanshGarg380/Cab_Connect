@@ -2,20 +2,28 @@ import React, { useState } from 'react';
 import { useRides } from '@/contexts/RideContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar, Clock, Plane, Plus, MapPin, ChevronDown  } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plane, Plus, MapPin, ChevronDown  } from 'lucide-react';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export function CreateRideModal() {
   const [open, setOpen] = useState(false);
+  const { createRide } = useRides();
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [flightDetails, setFlightDetails] = useState('');
-  const { createRide } = useRides();
   const [destination, setDestination] = useState<'airport' | 'campus'>('airport');
 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!date || !time) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
 
     const selectedDate = new Date(`${date}T${time}`);
     if (selectedDate < new Date()) {
@@ -26,10 +34,11 @@ export function CreateRideModal() {
     try {
       await createRide(date, time, destination);
       toast.success('Ride created successfully');
-      setOpen(false);
       setDate('');
       setTime('');
       setFlightDetails('');
+      setDestination('airport');
+      setOpen(false);
     } catch (err: any) {
       toast.error(err.message || 'Failed to create ride');
     }
@@ -41,87 +50,136 @@ export function CreateRideModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="gradient" size="lg" className="gap-2">
-          <Plus className="w-5 h-5" />
+        <Button variant="gradient" size="lg">
           Create Ride Request
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+
+      <DialogContent className="sm:max-w-xl top-[49%] translate-y-[-49%]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Plane className="w-5 h-5 text-primary" />
-            Create New Ride Request
+          <DialogTitle className="text-2xl font-bold">
+            Create Ride Request
           </DialogTitle>
         </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              <Calendar className="w-4 h-4 inline mr-2" />
-              Travel Date
-            </label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              min={minDate}
-              className="input-styled"
-              required
-            />
+
+        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+
+          {/* Pickup Location */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Pickup Location <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                value="Campus"
+                disabled
+                className="pl-10 h-11 bg-muted"
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              <MapPin className="w-4 h-4 inline mr-2" />
-              Destination
-            </label>
-            <select
-              value={destination}
-              onChange={(e) =>
-                setDestination(e.target.value as 'airport' | 'campus')
-              }
-              className="input-styled"
-              required
-            >
-              <option value="airport">Airport (IXE)</option>
-              <option value="campus">Campus</option>
-            </select>
+          {/* Date & Time */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Date <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="pl-10 h-11"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Time <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className="pl-10 h-11"
+                  required
+                />
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              <Clock className="w-4 h-4 inline mr-2" />
-              Departure Time
-            </label>
-            <input
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="input-styled"
-              required
-            />
+          {/* Destination */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
+              Destination <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Plane className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
+              <select
+                value={destination}
+                onChange={(e) =>
+                  setDestination(e.target.value as 'airport' | 'campus')
+                }
+                className="
+                  w-full h-11 pl-10 pr-4
+                  rounded-md border border-input
+                  bg-background text-sm
+                  focus:outline-none focus:ring-2 focus:ring-teal-500
+                "
+                required
+              >
+                <option value="airport">Airport (IXE)</option>
+                <option value="campus">Campus</option>
+              </select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Select where the ride is headed
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              <Plane className="w-4 h-4 inline mr-2" />
+          {/* Flight Details */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">
               Flight Details (Optional)
-            </label>
-            <input
-              type="text"
+            </Label>
+            <Textarea
+              placeholder="e.g., AI-302 to Delhi"
               value={flightDetails}
               onChange={(e) => setFlightDetails(e.target.value)}
-              placeholder="e.g., AI-302 to Delhi"
-              className="input-styled"
+              className="resize-none h-20"
             />
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>
+          {/* Info Box */}
+          <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
+            <p className="text-sm text-teal-800">
+              <span className="font-medium">Note:</span> You’ll be automatically
+              added to the ride. Max 4 participants per ride.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={() => setOpen(false)}
+            >
               Cancel
             </Button>
-            <Button type="submit" variant="gradient" className="flex-1">
-              Create Request
+            <Button
+              type="submit"
+              className="flex-1"
+              variant='gradient'
+            >
+              Create Ride
             </Button>
           </div>
         </form>

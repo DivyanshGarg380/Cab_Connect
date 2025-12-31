@@ -16,7 +16,7 @@ interface RideCardProps {
 
 export function RideCard({ ride, onOpenChat }: RideCardProps) {
   const { user } = useAuth();
-  const { joinRide, leaveRide } = useRides();
+  const { joinRide, leaveRide , deleteRide } = useRides();
 
   if (
     !ride ||
@@ -87,6 +87,17 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
       toast.success('Left Ride');
     } catch {
       toast.error('Error leaving ride');
+    }
+  };
+
+  const handleDeleteRide = async  () => {
+    if(!confirm('Delete ths ride permanently?')) return;
+
+    try{
+      await deleteRide(ride._id);
+      toast.success('Ride deleted');
+    } catch (err: any){
+      toast.error(err.message || 'Deleting Failed');
     }
   };
 
@@ -170,6 +181,16 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
             {canJoin && (
               <Button variant = "gradient" size="sm" onClick={handleJoinRide}>
                 Join Ride
+              </Button>
+            )}
+
+            {isCreator && !isExpired && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleDeleteRide}
+              >
+                Delete Ride
               </Button>
             )}
 

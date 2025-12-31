@@ -13,6 +13,7 @@ export function Dashboard() {
   const [activeChatRide, setActiveChatRide] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const { user }  = useAuth();
+  const now = new Date();
 
   const sortedRides = useMemo(() => {
     return [...rides]
@@ -26,28 +27,36 @@ export function Dashboard() {
   }, [rides]);
 
 
-  const activeRides = useMemo(
-    () => sortedRides.filter((r) => r.status === 'open'),
-    [sortedRides]
-  );
+  const activeRides = useMemo(() => {
+    return sortedRides.filter((r) => {
+      return new Date(r.departureTime) > new Date();
+    });
+  }, [sortedRides]);
 
-  const expiredRides = useMemo(
-    () => sortedRides.filter((r) => r.status === 'expired'),
-    [sortedRides]
-  );
+  const expiredRides = useMemo(() => {
+    return sortedRides.filter((r) => {
+      return new Date(r.departureTime) <= new Date();
+    });
+  }, [sortedRides]);
 
   const myRides = useMemo(() => {
     if (!user) return [];
 
+    const now = new Date();
+
     return rides.filter((r) => {
       if (!r.creator || !Array.isArray(r.participants)) return false;
 
-      return (
+      const isMine =
         r.creator._id === user.id ||
-        r.participants.some((p) => p._id === user.id)
-      );
+        r.participants.some((p) => p._id === user.id);
+
+      const isActive = new Date(r.departureTime) > now;
+
+      return isMine && isActive;
     });
   }, [rides, user]);
+
 
   const displayRides = activeTab === 'all' ? activeRides : activeTab === 'my' ? myRides : sortedRides;
 
@@ -107,7 +116,7 @@ export function Dashboard() {
                   Destination
                 </p>
                 <p className="text-sm text-gray-600">
-                  All rides go to the Airport
+                  All rides go to and from the Airport
                 </p>
               </div>
             </div>

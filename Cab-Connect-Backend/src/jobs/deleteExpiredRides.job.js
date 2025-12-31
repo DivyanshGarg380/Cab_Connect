@@ -4,9 +4,16 @@ import Message from "../models/Message.model.js";
 
 export const deleteExpiredRides = async () => {
     try {
+
+        const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
+        const cutoff = new Date(Date.now() - TWO_DAYS);
+
         // finding expored rides first
         const expiredRides = await Ride.find(
-            { status: 'expired' },
+            {
+                status: 'expired',
+                departureTime: { $lt: cutoff },
+            },
             { _id: 1 }
         );
 
@@ -14,24 +21,22 @@ export const deleteExpiredRides = async () => {
         const rideIds = expiredRides.map(r => r._id);
 
         // deleting messages first
-        const msgResult = await Message.deleteMany({
+        await Message.deleteMany({
             ride: { $in: rideIds },
         });
 
         // deleting ride now
-        const rideResult = await Ride.deleteMany({
-            _id: { $in: rideIds },
+        await Ride.deleteMany({
+           _id: { $in: rideIds },
         });
 
         rideIds.forEach((id) => {
             io.to(id.toString()).emit('ride-ended', {
-                message: 'Ride Expired',
+                message: 'Ride deleted',
             });
         });
 
-        console.log(
-            `Cleanup: deleted ${rideResult.deletedCount} rides and ${msgResult.deletedCount} messages`
-        );
+        console.log(`Cleanup: deleted ${rideIds.length} expired rides`);
     } catch (error) {
         console.log('Error deleting expired rides: ', error);
     }

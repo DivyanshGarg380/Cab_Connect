@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ride } from '@/types/index';
+import { toast } from 'sonner';
+import { socket } from '@/lib/socket';
 
 const API_BASE = 'http://localhost:5000';
 
@@ -15,6 +17,7 @@ interface RideContextType {
   ) => Promise<void>;
   joinRide: (rideId: string) => Promise<void>;
   leaveRide: (rideId: string) => Promise<void>;
+  deleteRide: (rideId: string) => Promise<void>;
 }
 
 const RideContext = createContext<RideContextType | undefined>(undefined);
@@ -89,6 +92,17 @@ export function RideProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    const handleRideEnded = () => {
+      fetchRides();
+    };
+
+    socket.on('ride-ended', handleRideEnded);
+    return () => {
+      socket.off('ride-ended', handleRideEnded);
+    };
+  }, []);
+
   const joinRide = async (rideId: string) => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
@@ -127,8 +141,30 @@ export function RideProvider({ children }: { children: ReactNode }) {
     await fetchRides();
   };
 
+  const deleteRide = async (rideId: string) => {
+    const token = localStorage.getItem('accessToken');
+    if(!token) return;
+
+    try{
+      const res = await fetch(`${API_BASE}/rides/${rideId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+      if(!res.ok){
+        throw new Error(data.message || 'Failed to delete ride');
+      }
+      setRides(prev => prev.filter(r => r._id !== rideId));
+    }catch (err){
+      throw err;
+    }
+  };
+
   return (
-    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide}}>
+    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide}}>
       {children}
     </RideContext.Provider>
   );
