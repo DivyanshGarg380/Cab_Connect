@@ -101,7 +101,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     return () => {
       socket.off('ride-ended', handleRideEnded);
     };
-  }, []);
+  }, []); 
 
   const joinRide = async (rideId: string) => {
     const token = localStorage.getItem('accessToken');

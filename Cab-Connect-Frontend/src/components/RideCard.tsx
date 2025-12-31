@@ -28,7 +28,7 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
     return null;
   }
 
-  const isExpired = ride.status === 'expired';
+  const isExpired = new Date(ride.departureTime) <= new Date();
   const isCreator = !!user && ride.creator._id === user.id;
   const isParticipant =
     !!user && ride.participants.some(p => p && p._id === user.id);
