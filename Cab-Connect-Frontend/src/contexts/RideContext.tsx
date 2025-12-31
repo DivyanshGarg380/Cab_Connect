@@ -29,7 +29,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     if(!token) return;
 
     try {
-      const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides`, {
+      const res = await fetch(`http://localhost:5000/rides`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -58,7 +58,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     const departureTime = new Date(`${date}T${time}`).toISOString();
 
     try {
-      const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides`, {
+      const res = await fetch(`http://localhost:5000/rides`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +105,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides/${rideId}/join`, {
+    const res = await fetch(`http://localhost:5000/rides/${rideId}/join`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -124,7 +124,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides/${rideId}/leave`, {
+    const res = await fetch(`http://localhost:5000/rides/${rideId}/leave`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -144,7 +144,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     if(!token) return;
 
     try{
-      const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides/${rideId}`, {
+      const res = await fetch(`http://localhost:5000/rides/${rideId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

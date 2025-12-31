@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode}){
       return;
     }
 
-    fetch(`${process.env.VITE_API_BASE_URL}/auth/me`, {
+    fetch(`http://localhost:5000/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode}){
   const login = async (token: string) => {
     localStorage.setItem('accessToken', token);
 
-    const res = await fetch(`${process.env.VITE_API_BASE_URL}/auth/me`, {
+    const res = await fetch(`http://localhost:5000/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
