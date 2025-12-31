@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useRides } from '@/contexts/RideContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Calendar as CalendarIcon, Clock, Plane, Plus, MapPin, ChevronDown  } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plane, Plus, MapPin, ChevronDown, PlaneTakeoff } from 'lucide-react';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,8 +14,8 @@ export function CreateRideModal() {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [flightDetails, setFlightDetails] = useState('');
+  const [pickup, setPickup] = useState<'campus' | 'airport'>('campus');
   const [destination, setDestination] = useState<'airport' | 'campus'>('airport');
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +51,7 @@ export function CreateRideModal() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="gradient" size="lg">
+          <Plus className="w-5 h-5 mr-2" />
           Create Ride Request
         </Button>
       </DialogTrigger>
