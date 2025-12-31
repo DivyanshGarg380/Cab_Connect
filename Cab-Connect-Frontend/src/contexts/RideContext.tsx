@@ -4,8 +4,6 @@ import { Ride } from '@/types/index';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
 
-const API_BASE = 'http://localhost:5000';
-
 interface RideContextType {
   rides: Ride[];
   fetchRides: () => Promise<void>;
@@ -31,7 +29,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     if(!token) return;
 
     try {
-      const res = await fetch(`${API_BASE}/rides`, {
+      const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -60,7 +58,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     const departureTime = new Date(`${date}T${time}`).toISOString();
 
     try {
-      const res = await fetch(`${API_BASE}/rides`, {
+      const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +105,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    const res = await fetch(`${API_BASE}/rides/${rideId}/join`, {
+    const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides/${rideId}/join`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -126,7 +124,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    const res = await fetch(`${API_BASE}/rides/${rideId}/leave`, {
+    const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides/${rideId}/leave`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -146,7 +144,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
     if(!token) return;
 
     try{
-      const res = await fetch(`${API_BASE}/rides/${rideId}`, {
+      const res = await fetch(`${process.env.VITE_API_BASE_URL}/rides/${rideId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

@@ -16,8 +16,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE = 'http://localhost:5000';
-
 export function AuthProvider({ children }: { children: ReactNode}){
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode}){
       return;
     }
 
-    fetch(`${API_BASE}/auth/me`, {
+    fetch(`${process.env.VITE_API_BASE_URL}/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -52,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode}){
   const login = async (token: string) => {
     localStorage.setItem('accessToken', token);
 
-    const res = await fetch(`${API_BASE}/auth/me`, {
+    const res = await fetch(`${process.env.VITE_API_BASE_URL}/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
