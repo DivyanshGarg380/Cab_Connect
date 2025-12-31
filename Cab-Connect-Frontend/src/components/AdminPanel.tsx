@@ -146,7 +146,7 @@ export function AdminPanel() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Users className="w-4 h-4 text-muted-foreground" />
-                          <span>{ride.participants.length}/{ride.maxParticipants}</span>
+                          <span>{ride.participants.length}/4</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -169,7 +169,7 @@ export function AdminPanel() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Ride?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will permanently delete the ride created by {ride.creatorName} on {format(new Date(ride.date), 'MMM dd, yyyy')}. 
+                                This will permanently delete the ride created by {ride.creator} on {format(new Date(ride.date), 'MMM dd, yyyy')}. 
                                 This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>

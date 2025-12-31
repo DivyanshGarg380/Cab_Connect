@@ -15,15 +15,16 @@ export function Dashboard() {
   const { user }  = useAuth();
 
   const sortedRides = useMemo(() => {
-    return [...rides].sort((a, b) => {
-      if (a.status === 'open' && b.status !== 'open') return -1;
-      if (b.status === 'open' && a.status !== 'open') return 1;
+    return [...rides]
+      .filter(r => r.date && r.status)
+      .sort((a, b) => {
+        if (a.status === 'open' && b.status !== 'open') return -1;
+        if (b.status === 'open' && a.status !== 'open') return 1;
 
-      return (
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      );
-    });
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      });
   }, [rides]);
+
 
   const activeRides = useMemo(
     () => sortedRides.filter((r) => r.status === 'open'),
@@ -37,11 +38,15 @@ export function Dashboard() {
 
   const myRides = useMemo(() => {
     if (!user) return [];
-    return rides.filter(
-      (r) =>
-        r.creator === user.id ||
-        r.participants.some((p) => p === user.id)
-    );
+
+    return rides.filter((r) => {
+      if (!r.creator || !Array.isArray(r.participants)) return false;
+
+      return (
+        r.creator._id === user.id ||
+        r.participants.some((p) => p._id === user.id)
+      );
+    });
   }, [rides, user]);
 
   const displayRides = activeTab === 'all' ? activeRides : activeTab === 'my' ? myRides : sortedRides;
@@ -112,10 +117,12 @@ export function Dashboard() {
                 {activeRides.length === 0 ? (
                   <EmptyState message="No active rides available. Be the first to create one!" />
                 ) : (
-                  activeRides.map(ride => (
-                    <RideCard 
-                      key={ride._id} 
-                      ride={ride} 
+                  activeRides
+                  .filter(r => r.creator && r.participants)
+                  .map(ride => (
+                    <RideCard
+                      key={ride._id}
+                      ride={ride}
                       onOpenChat={setActiveChatRide}
                     />
                   ))

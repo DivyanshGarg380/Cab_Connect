@@ -9,8 +9,8 @@ export interface RideParticipant {
 }
 export interface Ride {
   _id: string;
-  creator: string;          
-  participants: string[];  
+  creator: RideParticipant;          
+  participants: RideParticipant[];  
   date: string;
   destination: 'airport' | 'campus';
   departureTime: string;

@@ -153,4 +153,12 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
+router.get('/', authMiddleware, async (req, res) => {
+  const rides = await Ride.find()
+    .populate('creator', 'email')
+    .populate('participants', 'email');
+
+  res.json({ rides });
+});
+
 export default router;
