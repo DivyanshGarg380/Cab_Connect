@@ -52,126 +52,143 @@ export function Dashboard() {
   const displayRides = activeTab === 'all' ? activeRides : activeTab === 'my' ? myRides : sortedRides;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      <main className="container py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Main Content */}
-          <div className={`flex-1 ${activeChatRide ? 'lg:mr-96' : ''}`}>
-            {/* Hero Section */}
-            <div className="mb-8">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground mb-2">
-                    Airport Cab Sharing
-                  </h1>
-                  <p className="text-muted-foreground">
-                    Find travel buddies and split your cab fare
-                  </p>
-                </div>
-                <CreateRideModal />
-              </div>
 
-              {/* Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="card-elevated p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{activeRides.length}</p>
-                    <p className="text-xs text-muted-foreground">Active Rides</p>
-                  </div>
-                </div>
-                <div className="card-elevated p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-foreground">{myRides.length}</p>
-                    <p className="text-xs text-muted-foreground">Your Rides</p>
-                  </div>
-                </div>
-                <div className="card-elevated p-4 flex items-center gap-3 col-span-2 md:col-span-2">
-                  <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-                    <Plane className="w-5 h-5 text-accent-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Destination</p>
-                    <p className="text-xs text-muted-foreground">All rides go to the Airport</p>
-                  </div>
-                </div>
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          
+          {/* HERO */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                Airport Cab Sharing
+              </h1>
+              <p className="text-gray-600">
+                Find travel buddies and split your cab fare
+              </p>
+            </div>
+
+            <CreateRideModal />
+          </div>
+
+          {/* STATS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="flex items-center space-x-4 bg-gray-50 rounded-lg p-6">
+              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-gray-600" />
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-gray-900">
+                  {activeRides.length}
+                </p>
+                <p className="text-sm text-gray-600">Active Rides</p>
               </div>
             </div>
 
-            {/* Tabs */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full max-w-md grid-cols-3 mb-6">
-                <TabsTrigger value="all">All Active</TabsTrigger>
-                <TabsTrigger value="my">My Rides</TabsTrigger>
-                <TabsTrigger value="expired">History</TabsTrigger>
-              </TabsList>
+            <div className="flex items-center space-x-4 bg-gray-50 rounded-lg p-6">
+              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+                <Users className="w-6 h-6 text-gray-600" />
+              </div>
+              <div>
+                <p className="text-3xl font-bold text-gray-900">
+                  {myRides.length}
+                </p>
+                <p className="text-sm text-gray-600">Your Rides</p>
+              </div>
+            </div>
 
-              <TabsContent value="all" className="space-y-4">
-                {activeRides.length === 0 ? (
-                  <EmptyState message="No active rides available. Be the first to create one!" />
-                ) : (
-                  activeRides
-                  .filter(r => r.creator && r.participants)
-                  .map(ride => (
-                    <RideCard
-                      key={ride._id}
-                      ride={ride}
-                      onOpenChat={setActiveChatRide}
-                    />
-                  ))
-                )}
-              </TabsContent>
-
-              <TabsContent value="my" className="space-y-4">
-                {myRides.length === 0 ? (
-                  <EmptyState message="You haven't joined any rides yet. Browse active rides and join one!" />
-                ) : (
-                  myRides.map(ride => (
-                    <RideCard 
-                      key={ride._id} 
-                      ride={ride} 
-                      onOpenChat={setActiveChatRide}
-                    />
-                  ))
-                )}
-              </TabsContent>
-
-              <TabsContent value="expired" className="space-y-4">
-                {expiredRides.length === 0 ? (
-                  <EmptyState message="No expired rides yet." />
-                ) : (
-                  expiredRides.map((ride) => (
-                    <RideCard
-                      key={ride._id}
-                      ride={ride}
-                      onOpenChat={setActiveChatRide}
-                    />
-                  ))
-                )}
-              </TabsContent>
-            </Tabs>
+            <div className="flex items-center space-x-4 bg-gray-50 rounded-lg p-6">
+              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+                <Plane className="w-6 h-6 text-gray-600" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900">
+                  Destination
+                </p>
+                <p className="text-sm text-gray-600">
+                  All rides go to the Airport
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Chat Panel */}
-          {activeChatRide && (
-            <ChatPanel 
-              rideId={activeChatRide} 
-              onClose={() => setActiveChatRide(null)} 
-            />
-          )}
+          {/* SEARCH */}
+          <input
+            type="text"
+            placeholder="Search by date, location, or creator..."
+            className="w-full max-w-xl px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
+          />
         </div>
+      </div>
+
+      {/* ===== MAIN CONTENT ===== */}
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-8">
+            <TabsTrigger value="all">All Active</TabsTrigger>
+            <TabsTrigger value="my">My Rides</TabsTrigger>
+            <TabsTrigger value="expired">History</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-4">
+            {activeRides.length === 0 ? (
+              <EmptyState message="No active rides available. Be the first to create one!" />
+            ) : (
+              activeRides
+                .filter(r => r.creator && r.participants)
+                .map(ride => (
+                  <RideCard
+                    key={ride._id}
+                    ride={ride}
+                    onOpenChat={setActiveChatRide}
+                  />
+                ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="my" className="space-y-4">
+            {myRides.length === 0 ? (
+              <EmptyState message="You haven't joined any rides yet. Browse active rides and join one!" />
+            ) : (
+              myRides.map(ride => (
+                <RideCard
+                  key={ride._id}
+                  ride={ride}
+                  onOpenChat={setActiveChatRide}
+                />
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="expired" className="space-y-4">
+            {expiredRides.length === 0 ? (
+              <EmptyState message="No expired rides yet." />
+            ) : (
+              expiredRides.map(ride => (
+                <RideCard
+                  key={ride._id}
+                  ride={ride}
+                  onOpenChat={setActiveChatRide}
+                />
+              ))
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
+
+      {/* CHAT PANEL */}
+      {activeChatRide && (
+        <ChatPanel
+          rideId={activeChatRide}
+          onClose={() => setActiveChatRide(null)}
+        />
+      )}
     </div>
   );
-}
 
+
+}
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="card-elevated p-12 text-center">

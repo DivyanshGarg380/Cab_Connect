@@ -13,6 +13,8 @@ interface RideContextType {
     flightDetails?: string,
     destination?: string
   ) => Promise<void>;
+  joinRide: (rideId: string) => Promise<void>;
+  leaveRide: (rideId: string) => Promise<void>;
 }
 
 const RideContext = createContext<RideContextType | undefined>(undefined);
@@ -73,7 +75,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
         throw new Error(data.message || 'Failed to create ride');
       }
 
-      setRides(prev => [...prev, data.ride]);
+      await fetchRides();
 
     } catch (err: any) {
       console.error('Create ride error:', err);
@@ -87,8 +89,46 @@ export function RideProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated]);
 
+  const joinRide = async (rideId: string) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    const res = await fetch(`${API_BASE}/rides/${rideId}/join`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message);
+    }
+
+    await fetchRides();
+  };
+
+  const leaveRide = async (rideId: string) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
+
+    const res = await fetch(`${API_BASE}/rides/${rideId}/leave`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message);
+    }
+
+    await fetchRides();
+  };
+
   return (
-    <RideContext.Provider value={{ rides, fetchRides, createRide }}>
+    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide}}>
       {children}
     </RideContext.Provider>
   );
