@@ -76,8 +76,8 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
     try {
       await joinRide(ride._id);
       toast.success('Joined Ride');
-    } catch {
-      toast.error('Unable to join ride');
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to join ride');
     }
   };
 
@@ -85,19 +85,24 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
     try {
       await leaveRide(ride._id);
       toast.success('Left Ride');
-    } catch {
-      toast.error('Error leaving ride');
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || 'Error leaving ride';
+      toast.error(message);
     }
   };
 
-  const handleDeleteRide = async  () => {
-    if(!confirm('Delete ths ride permanently?')) return;
 
-    try{
+  const handleDeleteRide = async () => {
+    if (!confirm('Delete this ride permanently?')) return;
+
+    try {
       await deleteRide(ride._id);
       toast.success('Ride deleted');
-    } catch (err: any){
-      toast.error(err.message || 'Deleting Failed');
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || 'Deleting failed';
+      toast.error(message);
     }
   };
 

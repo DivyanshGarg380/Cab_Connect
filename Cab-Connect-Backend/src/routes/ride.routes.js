@@ -4,7 +4,8 @@ import authMiddleware from '../middleware/auth.middleware.js';
 import { mongo } from 'mongoose';
 import { isNonEmptyString, isValidDate } from '../utils/validate.js';
 import { io } from '../server.js';
-import banMiddleware from "../middleware/ban.middleware.js"
+import banMiddleware from "../middleware/ban.middleware.js";
+import { expireOldRides } from '../jobs/expireRides.job.js';
 
 const router = express.Router();
 
@@ -15,11 +16,10 @@ const router = express.Router();
 
 router.post('/', authMiddleware, banMiddleware, async (req, res) => {
     try {
+        await expireOldRides();
         const { destination, departureTime } = req.body;
         const rideDate = new Date(departureTime);
         const date = rideDate.toISOString().split('T')[0];
-
-        console.log(`${destination} , ${departureTime}`)
 
         if (
             !isNonEmptyString(destination) ||
@@ -32,6 +32,45 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
 
         if(rideDate <= new Date()) {
             return res.status(400).json({ message: 'Departure time must be in the future' });
+        }
+
+        // Edge Case 1: A user can create max 2 rides ( to airport or back to campus ).. so both rides cant have same dest
+        const activeRides = await Ride.find({
+            creator: req.userId,
+            status: { $in: ['open', 'full']},
+        });
+
+        // max 2 allowed
+        if(activeRides.length >= 2){
+            return res.status(400).json({
+                message: 'You can create at most 2 active rides at a time',
+            })
+        }
+
+        // unique destination
+        const sameDestination = activeRides.some(
+            (ride) => ride.destination === destination
+        );
+        if(sameDestination){
+            return res.status(400).json({
+                message: `You already have an active ride scheduled to ${destination}`,
+            });
+        }
+
+        // Edge case 2: Block creation if already a part of a ride
+        const conflictingRide = await Ride.findOne({
+            destination,
+            status: { $in : ['open', 'full']},
+            $or: [
+                { creator: req.userId },
+                { participants: req.userId },
+            ],
+        });
+
+        if (conflictingRide) {
+            return res.status(400).json({
+                message: `You are already part of an active ride to ${destination}.`,
+            });
         }
         
         const ride = await Ride.create({
@@ -55,6 +94,19 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
 
 router.post('/:id/join', authMiddleware, async (req, res) => {
     try{
+        // Edge case 2: "Creator" cannot other join other rides -> Delete current ride to join other
+        const activeCreatedRide = await Ride.findOne({
+            creator: req.userId,
+            status: { $in: ['open', 'full'] },
+            _id: { $ne: req.params.id },
+        });
+
+        if(activeCreatedRide){
+            return res.status(400).json({
+                message: 'You have an active ride posted. Delete it before joining another ride.'
+            })
+        }
+        
         const rideId = req.params.id;
         const userId = new mongo.ObjectId(req.userId);
 
