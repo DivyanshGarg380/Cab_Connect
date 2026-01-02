@@ -11,22 +11,16 @@ import { deleteExpiredRides } from './jobs/deleteExpiredRides.job.js';
 
 const PORT = process.env.PORT || 5000;
 
-connectDB();
-
 const server = http.createServer(app);
 
 const io = new Server(server, {
-  cors: {
-    origin: "*", // will tighten later -_-
-  }
+  cors: { origin: "*" },
 });
-
 
 initChatSocket(io);
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
-
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
@@ -34,10 +28,22 @@ io.on('connection', (socket) => {
 
 export { io };
 
-setInterval(expireOldRides, 5*60*1000);
-setInterval(deleteExpiredRides, 30*60*1000);
+async function startServer() {
+  try {
+    await connectDB(); 
+    console.log("MongoDB connected");
 
+    setInterval(expireOldRides, 5 * 60 * 1000);
+    setInterval(deleteExpiredRides, 30 * 60 * 1000);
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+
+  } catch (err) {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  }
+}
+
+startServer();

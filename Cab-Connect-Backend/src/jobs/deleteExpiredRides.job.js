@@ -2,7 +2,7 @@ import Ride from "../models/Ride.model.js";
 import { io } from '../server.js';
 import Message from "../models/Message.model.js";
 
-export const deleteExpiredRides = async () => {
+export const deleteExpiredRides = async (io) => {
     try {
 
         const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
