@@ -188,7 +188,7 @@ export function LoginPage () {
                   />
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Use your official college email address (or @gmail.com for demo)
+                  Use your official college email address
                 </p>
               </div>
 
