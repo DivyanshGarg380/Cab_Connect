@@ -160,19 +160,22 @@ export function AuthProvider({ children }: { children: ReactNode}){
               {activeNotification.message}
             </p>
 
-            {activeNotification.ride && (
+            {activeNotification?.ride?.destination && (
               <div className="bg-muted/40 rounded-lg p-3 text-sm mb-4">
                 <p>
                   <span className="font-medium">Destination:</span>{' '}
                   {activeNotification.ride.destination}
                 </p>
-                <p>
-                  <span className="font-medium">Departure:</span>{' '}
-                  {format(
-                    new Date(activeNotification.ride.departureTime),
-                    'MMM d, yyyy • hh:mm a'
-                  )}
-                </p>
+
+                {activeNotification.ride.departureTime && (
+                  <p>
+                    <span className="font-medium">Departure:</span>{' '}
+                    {format(
+                      new Date(activeNotification.ride.departureTime),
+                      'MMM d, yyyy • hh:mm a'
+                    )}
+                  </p>
+                )}
               </div>
             )}
 
