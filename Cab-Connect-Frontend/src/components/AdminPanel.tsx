@@ -34,6 +34,7 @@ import { Trash2, Shield, Calendar, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Ride } from '@/types';
 import { UserX } from "lucide-react";
+import { ShieldX } from 'lucide-react';
 
 export function AdminPanel() {
   const { rides, deleteRide } = useRides();
@@ -135,13 +136,13 @@ export function AdminPanel() {
               <p className="text-xs text-muted-foreground">Full</p>
             </div>
           </div>
-          <div className="card-elevated p-4 flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-muted-foreground" />
-            <div>
-              <p className="text-2xl font-bold">{rides.filter(r => r.status === 'expired').length}</p>
-              <p className="text-xs text-muted-foreground">Expired</p>
+           <div className="card-elevated p-4 flex items-center gap-3">
+              <ShieldX className="w-5 h-5 text-destructive" />
+              <div>
+                <p className="text-2xl font-bold">{deletedRides.length}</p>
+                <p className="text-xs text-muted-foreground">Removed</p>
+              </div>
             </div>
-          </div>
         </div>
 
         {/* Rides Table */}
@@ -170,12 +171,13 @@ export function AdminPanel() {
                 <TableRow>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Creator</TableHead>
-                  {/* <TableHead>Flight</TableHead> */}
+                  <TableHead>Destination</TableHead>
                   <TableHead>Participants</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {displayRides.length === 0 ? (
                   <TableRow>
@@ -201,11 +203,9 @@ export function AdminPanel() {
                           <p className="text-sm text-muted-foreground">{ride.creator.email}</p>
                         </div>
                       </TableCell>
-                      {/* <TableCell>
-                        <span className="text-sm">
-                          {ride.flightDetails || <span className="text-muted-foreground">—</span>}
-                        </span>
-                      </TableCell> */}
+                      <TableCell className="capitalize">
+                        {ride.destination}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Users className="w-4 h-4 text-muted-foreground" />
@@ -221,7 +221,7 @@ export function AdminPanel() {
                                 {ride.participants.length}/4
                               </button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-4xl max-h-[85vh] overflow-visible">
                               <DialogHeader>
                                 <DialogTitle>Ride Participants</DialogTitle>
                               </DialogHeader>
