@@ -26,25 +26,39 @@ router.delete('/rides/:id', authMiddleware, adminMiddleware, async (req, res) =>
     try {
         const ride = await Ride.findById(req.params.id);
 
+        console.log('ADMIN DELETE HIT', req.params.id);
+
         if(!ride){
             return res.status(404).json({ message: 'Ride not found' });
         }
         const creatorId = ride.creator.toString();
-        const message = 'Your ride was removed by the administrator due to policy reasons';
-        await Notification.create({
-            user: creatorId,
-            message,
-        });
+        const notificationPayload = {
+            title: 'Ride Removed',
+            message: 'Your ride was removed by the administrator due to policy reasons.',
+            ride: {
+                destination: ride.destination,
+                departureTime: ride.departureTime,
+            },
+        };
 
-        io.to(creatorId).emit('admin-notification', {
-            message,
-        });
-        // notify all ride participants that this ride has been cancelled by me :)
-        io.to(ride._id.toString()).emit('ride-ended',{
+        await Ride.deleteOne({ _id: ride._id });
+
+        io.to(ride._id.toString()).emit('ride-ended', {
             message: 'This ride was removed by the administrator',
         });
 
-        await Ride.deleteOne({ _id: ride._id });
+        try {
+            await Notification.create({
+                user: creatorId,
+                message: notificationPayload.message,
+            });
+
+            io.to(creatorId).emit('admin-notification', { notificationPayload });
+            console.log('Notification saved & emitted');
+        } catch (err) {
+            console.error('Notification failed', err);
+        }
+       
         res.json({ message: 'Ride was deleted by the admin' });
     }catch (error){
         console.error('Admin delete ride error: ', error);

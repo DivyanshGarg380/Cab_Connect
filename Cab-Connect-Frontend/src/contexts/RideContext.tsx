@@ -21,6 +21,7 @@ interface RideContextType {
   deleteRide: (rideId: string) => Promise<void>;
   clearUnread: (rideId: string) => void;
   unread: Record<string, boolean>;
+  deleteRideAdmin: (rideId: string) => Promise<void>;
 }
 
 const RideContext = createContext<RideContextType | undefined>(undefined);
@@ -234,13 +235,30 @@ export function RideProvider({ children }: { children: ReactNode }) {
       : '/favicon.svg';
   }, [unread]);
 
-
   const clearUnread = (rideId: string) => {
     setUnread(prev => ({ ...prev, [rideId]: false }));
   };
 
+  const deleteRideAdmin = async (rideId: string) => {
+    const token = localStorage.getItem('accessToken');
+    if(!token) return;
+
+    const res = await fetch(`http://localhost:5000/admin/rides/${rideId}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if(!res.ok){
+      const err = await res.json();
+      throw new Error(err.message || 'Admin delete failed');
+    }
+    setRides(prev => prev.filter(r => r._id !== rideId));
+  };
+
   return (
-    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide, fetchMessages, sendMessage, messages, clearUnread, unread}}>
+    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide, fetchMessages, sendMessage, messages, clearUnread, unread, deleteRideAdmin}}>
       {children}
     </RideContext.Provider>
   );

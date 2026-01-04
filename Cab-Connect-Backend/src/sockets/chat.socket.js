@@ -45,7 +45,7 @@ export const initChatSocket = (io) => {
 
             socket.join(rideId);
             console.log(`User ${socket.userId} joined ride ${rideId}`);
-        });5
+        });
 
         // sending messages
         socket.on('send-message', async ({ rideId, content }) => {

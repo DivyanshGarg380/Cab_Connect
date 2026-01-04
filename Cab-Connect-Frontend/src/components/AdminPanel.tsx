@@ -37,7 +37,7 @@ import { UserX } from "lucide-react";
 import { ShieldX } from 'lucide-react';
 
 export function AdminPanel() {
-  const { rides, deleteRide } = useRides();
+  const { rides, deleteRideAdmin } = useRides();
   const { user } = useAuth();
   
   // Not needed but still doing for security purposes
@@ -65,9 +65,9 @@ export function AdminPanel() {
 
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
 
-  const handleDelete = (ride: Ride) => {
+  const handleDelete = async (ride: Ride) => {
     setDeletedRides(prev => [...prev, ride]);
-    deleteRide(ride._id);
+    await deleteRideAdmin(ride._id);
   };
 
   const getStatusColor = (status: string) => {
