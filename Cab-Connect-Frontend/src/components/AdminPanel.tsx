@@ -22,10 +22,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Shield, Calendar, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { Ride } from '@/types';
+import { UserX } from "lucide-react";
 
 export function AdminPanel() {
   const { rides, deleteRide } = useRides();
@@ -53,13 +61,13 @@ export function AdminPanel() {
   );
 
   const [deletedRides, setDeletedRides] = useState<Ride[]>([]);
+
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
 
   const handleDelete = (ride: Ride) => {
     setDeletedRides(prev => [...prev, ride]);
     deleteRide(ride._id);
   };
-
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -201,12 +209,102 @@ export function AdminPanel() {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Users className="w-4 h-4 text-muted-foreground" />
-                          <span>{ride.participants.length}/4</span>
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button  className="
+                                  text-sm
+                                  text-primary
+                                  hover:underline
+                                  cursor-pointer
+                                  focus:outline-none
+                              ">
+                                {ride.participants.length}/4
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Ride Participants</DialogTitle>
+                              </DialogHeader>
+
+                              {ride.participants.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">
+                                  No participants in this ride
+                                </p>
+                              ) : (
+                                <div className="border rounded-md overflow-hidden mt-2">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead >Role</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+
+                                    <TableBody>
+                                      {ride.participants.map((p) => {
+                                        const isOwner = p._id === ride.creator._id;
+
+                                        return (
+                                          <TableRow
+                                            key={p._id}
+                                            className={isOwner ? "bg-primary/5" : ""}
+                                          >
+                                            <TableCell className="font-medium">
+                                              {getDisplayName(p.email)}
+                                            </TableCell>
+
+                                            <TableCell className="text-muted-foreground">
+                                              {p.email}
+                                            </TableCell>
+
+                                            <TableCell className="text-center">
+                                              {isOwner ? (
+                                                <Badge variant="default">Owner</Badge>
+                                              ) : (
+                                                <Badge variant="secondary">Passenger</Badge>
+                                              )}
+                                            </TableCell>
+
+                                            <TableCell className="text-right">
+                                              {!isOwner && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  // onClick={() => banUser(p._id)}
+                                                  className="
+                                                    text-muted-foreground
+                                                    hover:text-destructive
+                                                    hover:bg-destructive/10
+                                                    transition
+                                                  "
+                                                >
+                                                  <UserX className="w-4 h-4 mr-1" />
+                                                  Ban
+                                                </Button>
+                                              )}
+                                            </TableCell>
+                                          </TableRow>
+                                        );
+                                      })}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              )}
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={getStatusColor(ride.status)}>
-                          {ride.status}
+                        <Badge variant="outline" className = {
+                          activeTab === 'history' ? 'bg-destructive/10 text-destructive border-destructive/30'
+                                                  : getStatusColor(ride.status)
+                        }>
+                          {activeTab === 'history'
+                              ? 'Removed'
+                              : ride.status
+                          }
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
