@@ -15,6 +15,15 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    setTimeout(onClose, 200);
+  };
+
   const ride = rides.find(r => r._id === rideId);
   const participants = ride?.participants ?? [];
   const rideMessages = messages?.[rideId] ?? [];
@@ -28,6 +37,25 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
     fetchMessages(rideId);
     clearUnread(rideId);
   }, [rideId]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+
+      if (
+        e.key === '/' &&
+        !(document.activeElement instanceof HTMLInputElement)
+      ) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleClose]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,12 +71,18 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
       {/* Backdrop */}
       <div
-        className="absolute inset-0"
-        onClick={onClose}
+        className={`absolute inset-0 transition-opacity duration-200 ${isClosing ? 'opacity-0' : 'opacity-100'}`}
+        onClick={handleClose}
       />
 
       {/* Chat Modal */}
-      <div className="relative w-full max-w-md h-[80vh] bg-card border border-border rounded-xl shadow-xl flex flex-col animate-in fade-in zoom-in duration-200">
+      <div className={`
+        relative w-full max-w-md h-[80vh]
+        bg-card border border-border rounded-xl shadow-xl
+        flex flex-col
+        transition-all duration-200 ease-out
+        ${isClosing ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}
+      `}>
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
@@ -59,7 +93,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
               {participants.length} members
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+          <Button variant="ghost" size="icon" onClick={handleClose}>
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -133,11 +167,19 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
         <form onSubmit={handleSend} className="p-4 border-t border-border">
           <div className="flex gap-2">
             <input
+              ref = {inputRef}
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
-              className="flex-1 input-styled py-2"
+              className="
+                flex-1 input-styled py-2
+                outline-none
+                focus:outline-none
+                focus:ring-0
+                focus-visible:ring-0
+                focus:border-transparent
+              "
             />
             <Button type="submit" size="icon" variant="gradient" disabled={!newMessage.trim()}>
               <Send className="w-4 h-4" />
