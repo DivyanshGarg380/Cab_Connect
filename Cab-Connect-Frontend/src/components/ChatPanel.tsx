@@ -11,7 +11,7 @@ interface ChatPanelProps {
 
 export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
   const { user } = useAuth();
-  const { rides, messages, sendMessage, fetchMessages } = useRides();
+  const { rides, messages, sendMessage, fetchMessages, clearUnread } = useRides();
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +26,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
 
   useEffect(() => {
     fetchMessages(rideId);
+    clearUnread(rideId);
   }, [rideId]);
 
   const handleSend = (e: React.FormEvent) => {
@@ -97,7 +98,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
                     {!isOwn && (
                       <p className="text-xs font-medium opacity-70 mb-1">{msg.sender.email}</p>
                     )}
-                    <p className="text-sm">{msg.content}</p>
+                    <p className="text-sm">{msg.text}</p>
                     <p className={`text-[10px] mt-1 ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
                       {format(new Date(msg.createdAt), 'h:mm a')}
                     </p>

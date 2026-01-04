@@ -19,6 +19,8 @@ interface RideContextType {
   joinRide: (rideId: string) => Promise<void>;
   leaveRide: (rideId: string) => Promise<void>;
   deleteRide: (rideId: string) => Promise<void>;
+  clearUnread: (rideId: string) => void;
+  unread: Record<string, boolean>;
 }
 
 const RideContext = createContext<RideContextType | undefined>(undefined);
@@ -27,6 +29,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const [ rides, setRides ] = useState<Ride[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [unread, setUnread] = useState<Record<string, boolean>>({});
 
   const fetchRides = async () => {
     const token = localStorage.getItem('accessToken');
@@ -191,7 +194,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ text: content }),
     });
 
     if(!res.ok) return;
@@ -206,8 +209,13 @@ export function RideProvider({ children }: { children: ReactNode }) {
     socket.on('new-message', (message: Message) => {
       setMessages(prev => ({
         ...prev,
-        [message.rideId]: [...(prev[message.rideId] || []), message],
+        [message.ride]: [...(prev[message.ride] || []), message],
       }));
+
+      setUnread(prev => ({
+        ...prev,
+        [message.ride]: true,
+      }))
     });
 
     return () => {
@@ -215,9 +223,13 @@ export function RideProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const clearUnread = (rideId: string) => {
+    setUnread(prev => ({ ...prev, [rideId]: false }));
+  };
+
   
   return (
-    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide, fetchMessages, sendMessage, messages}}>
+    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide, fetchMessages, sendMessage, messages, clearUnread, unread}}>
       {children}
     </RideContext.Provider>
   );

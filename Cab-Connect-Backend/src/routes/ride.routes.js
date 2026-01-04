@@ -6,6 +6,7 @@ import { isNonEmptyString, isValidDate } from '../utils/validate.js';
 import { io } from '../server.js';
 import banMiddleware from "../middleware/ban.middleware.js";
 import { expireOldRides } from '../jobs/expireRides.job.js';
+import Message from '../models/Message.model.js';
 
 const router = express.Router();
 
@@ -214,5 +215,47 @@ router.get('/', authMiddleware, async (req, res) => {
 
   res.json({ rides });
 });
+
+router.get('/:id/messages', authMiddleware, banMiddleware , async (req, res) => {
+    try{
+        const rideId = req.params.id;
+        const messages = await Message.find({ ride: rideId })
+            .populate('sender', 'email')
+            .sort({ createdAt: 1 });
+        res.json({ messages });
+    }catch (err){
+        console.log('Fetch Messages Error: ', err);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+router.post('/:id/messages', authMiddleware, banMiddleware, async (req, res) => {
+    try{
+        const rideId = req.params.id;
+        const rideExists = await Ride.findById(rideId);
+        if (!rideExists) {
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+        const { text } = req.body;
+
+        if(!text || !text.trim()){
+            return res.status(400).json({ message: 'Message text Required '});
+        }
+
+        const message = await Message.create({
+            ride: rideId,
+            sender: req.userId,
+            text,
+        });
+
+        const populatedMessage = await message.populate('sender', 'email');
+
+        io.to(rideId).emit('new-message', populatedMessage);
+        res.status(201).json({ message: populatedMessage });
+    }catch( err){
+        console.error('Send Message Error:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+})
 
 export default router;

@@ -21,11 +21,11 @@ export interface RidesResponse {
 }
 export interface Message {
   _id: string;
-  rideId: string;
+  ride: string;
   sender: {
     _id: string;
     email: string;
   };
-  content: string;
+  text: string;
   createdAt: string;
 }

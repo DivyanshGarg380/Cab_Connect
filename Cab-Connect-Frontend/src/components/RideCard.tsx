@@ -16,7 +16,7 @@ interface RideCardProps {
 
 export function RideCard({ ride, onOpenChat }: RideCardProps) {
   const { user } = useAuth();
-  const { joinRide, leaveRide , deleteRide } = useRides();
+  const { joinRide, leaveRide , deleteRide, unread } = useRides();
 
   if (
     !ride ||
@@ -137,10 +137,14 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
               size="sm"
               variant="secondary"
               onClick={() => onOpenChat(ride._id)}
-              className="bg-slate-900 hover:bg-slate-800 text-white"
+              className="relative bg-slate-900 hover:bg-slate-800 text-white"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               Group Chat
+
+              {unread?.[ride._id] && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+              )}
             </Button>
           )}
         </div>
