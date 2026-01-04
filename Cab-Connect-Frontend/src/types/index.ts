@@ -19,3 +19,13 @@ export interface Ride {
 export interface RidesResponse {
   rides: Ride[];
 }
+export interface Message {
+  _id: string;
+  rideId: string;
+  sender: {
+    _id: string;
+    email: string;
+  };
+  content: string;
+  createdAt: string;
+}

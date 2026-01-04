@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Ride } from '@/types/index';
+import { Ride, Message} from '@/types/index';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
 
 interface RideContextType {
   rides: Ride[];
   fetchRides: () => Promise<void>;
+  messages: Record<string, Message[]>;
+  fetchMessages: (rideId: string) => Promise<void>;
+  sendMessage: (rideId: string, content: string) => Promise<void>;
   createRide: (
     date: string,
     time: string,
@@ -23,6 +26,7 @@ const RideContext = createContext<RideContextType | undefined>(undefined);
 export function RideProvider({ children }: { children: ReactNode }) {
   const { user, isAuthenticated } = useAuth();
   const [ rides, setRides ] = useState<Ride[]>([]);
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
 
   const fetchRides = async () => {
     const token = localStorage.getItem('accessToken');
@@ -161,8 +165,59 @@ export function RideProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const fetchMessages = async(rideId: string) => {
+    const token = localStorage.getItem('accessToken');
+    if(!token) return;
+
+    const res = await fetch(`http://localhost:5000/rides/${rideId}/messages`, {
+      headers: { Authorization: `Bearer ${token}`},
+    });
+
+    if(!res.ok) return;
+    const data = await res.json();
+
+    setMessages(prev => ({
+      ...prev,
+      [rideId]: data.messages,
+    }));
+  };
+
+  const sendMessage = async (rideId: string, content: string) => {
+    const token = localStorage.getItem('accessToken');
+    if(!token) return;
+    const res = await fetch(`http://localhost:5000/rides/${rideId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ content }),
+    });
+
+    if(!res.ok) return;
+    const data = await res.json();
+    setMessages(prev => ({
+      ...prev,
+      [rideId]: [...(prev[rideId] || []),  data.message],
+    }));
+  };
+
+  useEffect(() => {
+    socket.on('new-message', (message: Message) => {
+      setMessages(prev => ({
+        ...prev,
+        [message.rideId]: [...(prev[message.rideId] || []), message],
+      }));
+    });
+
+    return () => {
+      socket.off('new-message');
+    };
+  }, []);
+
+  
   return (
-    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide}}>
+    <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide, fetchMessages, sendMessage, messages}}>
       {children}
     </RideContext.Provider>
   );

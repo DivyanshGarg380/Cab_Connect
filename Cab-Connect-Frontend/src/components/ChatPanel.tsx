@@ -4,7 +4,6 @@ import { useRides } from '@/contexts/RideContext';
 import { Button } from '@/components/ui/button';
 import { X, Send, Users } from 'lucide-react';
 import { format } from 'date-fns';
-
 interface ChatPanelProps {
   rideId: string;
   onClose: () => void;
@@ -12,16 +11,22 @@ interface ChatPanelProps {
 
 export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
   const { user } = useAuth();
-  const { rides, messages, sendMessage } = useRides();
+  const { rides, messages, sendMessage, fetchMessages } = useRides();
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const ride = rides.find(r => r.id === rideId);
-  const rideMessages = messages[rideId] || [];
+  const ride = rides.find(r => r._id === rideId);
+  const participants = ride?.participants ?? [];
+  const rideMessages = messages?.[rideId] ?? [];
+  if(!user || !ride) return null;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [rideMessages]);
+
+  useEffect(() => {
+    fetchMessages(rideId);
+  }, [rideId]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,11 +60,11 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
           <div className="flex flex-wrap gap-2">
             {ride.participants.map(p => (
               <span
-                key={p.userId}
+                key={p._id}
                 className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-background border border-border"
               >
-                {p.userName}
-                {p.userId === ride.creatorId && (
+                {p.email}
+                {p._id === ride.creator._id && (
                   <span className="ml-1 text-primary">★</span>
                 )}
               </span>
@@ -76,10 +81,10 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
             </div>
           ) : (
             rideMessages.map(msg => {
-              const isOwn = msg.senderId === user?.id;
+              const isOwn = msg.sender._id === user?.id;
               return (
                 <div
-                  key={msg.id}
+                  key={msg.sender.email}
                   className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
@@ -90,11 +95,11 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
                     }`}
                   >
                     {!isOwn && (
-                      <p className="text-xs font-medium opacity-70 mb-1">{msg.senderName}</p>
+                      <p className="text-xs font-medium opacity-70 mb-1">{msg.sender.email}</p>
                     )}
                     <p className="text-sm">{msg.content}</p>
                     <p className={`text-[10px] mt-1 ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
-                      {format(new Date(msg.timestamp), 'h:mm a')}
+                      {format(new Date(msg.createdAt), 'h:mm a')}
                     </p>
                   </div>
                 </div>
