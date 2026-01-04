@@ -115,7 +115,11 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
           <div>
             <div className="flex items-center space-x-2 mb-1">
               <h3 className="text-lg font-semibold text-foreground">
-                {isParticipant ? 'Active Ride' : 'Available Ride'}
+                {isExpired
+                  ? 'Expired Ride'
+                  : isParticipant
+                  ? 'Active Ride'
+                  : 'Available Ride'}
               </h3>
               {isCreator && (
                 <Badge variant="secondary" className="text-xs">

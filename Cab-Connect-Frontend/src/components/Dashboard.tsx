@@ -34,10 +34,17 @@ export function Dashboard() {
   }, [sortedRides]);
 
   const expiredRides = useMemo(() => {
+    if(!user) return [];
+    const now = new Date();
     return sortedRides.filter((r) => {
-      return new Date(r.departureTime) <= new Date();
+      if(!r.creator || !Array.isArray(r.participants)) return false;
+      const isExpired = new Date(r.departureTime) <= now;
+
+      const isMine = r.creator._id === user.id ||
+                     r.participants.some((p) => p._id === user.id);
+      return isExpired && isMine;
     });
-  }, [sortedRides]);
+  }, [sortedRides, user]);
 
   const myRides = useMemo(() => {
     if (!user) return [];
@@ -58,7 +65,7 @@ export function Dashboard() {
   }, [rides, user]);
 
 
-  const displayRides = activeTab === 'all' ? activeRides : activeTab === 'my' ? myRides : sortedRides;
+  const displayRides = activeTab === 'all' ? activeRides : activeTab === 'my' ? myRides : expiredRides;
 
   return (
     <div className="min-h-screen bg-gray-50">
