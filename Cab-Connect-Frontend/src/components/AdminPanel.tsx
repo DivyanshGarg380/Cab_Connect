@@ -25,29 +25,66 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Trash2, Shield, Calendar, Users, Clock } from 'lucide-react';
 import { format } from 'date-fns';
+import { Ride } from '@/types';
 
 export function AdminPanel() {
   const { rides, deleteRide } = useRides();
   const { user } = useAuth();
+  
+  // Not needed but still doing for security purposes
+  if (!user || user.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">
+          Access denied. Admins only.
+        </p>
+      </div>
+    );
+  }
+
   const [selectedRideId, setSelectedRideId] = useState<string | null>(null);
 
-  const sortedRides = [...rides].sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  const activeRides = rides.filter(
+    r => r.status === 'open' || r.status === 'full'
   );
 
-  const handleDelete = (rideId: string) => {
-    deleteRide(rideId);
-    setSelectedRideId(null);
+  const sortedRides = [...activeRides].sort((a, b) => 
+    new Date(b.departureTime).getTime() - new Date(a.departureTime).getTime()
+  );
+
+  const [deletedRides, setDeletedRides] = useState<Ride[]>([]);
+  const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
+
+  const handleDelete = (ride: Ride) => {
+    setDeletedRides(prev => [...prev, ride]);
+    deleteRide(ride._id);
   };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-success/20 text-success border-success/30';
-      case 'expired': return 'bg-muted text-muted-foreground border-muted';
-      case 'full': return 'bg-warning/20 text-warning border-warning/30';
-      default: return 'bg-muted text-muted-foreground';
+      case 'open':
+        return 'bg-success/20 text-success border-success/30';
+      case 'full':
+        return 'bg-warning/20 text-warning border-warning/30';
+      case 'expired':
+        return 'bg-muted text-muted-foreground border-muted';
+      default:
+        return 'bg-muted text-muted-foreground';
     }
   };
+
+  const getDisplayName = (email: string) => {
+    const localPart = email.split('mit')[0];
+
+    return localPart
+      .replace(/\d+/g, '')               
+      .replace(/[._]/g, ' ')            
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
+  const displayRides = activeTab === 'active' ? sortedRides : deletedRides;
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,7 +116,7 @@ export function AdminPanel() {
           <div className="card-elevated p-4 flex items-center gap-3">
             <Clock className="w-5 h-5 text-success" />
             <div>
-              <p className="text-2xl font-bold">{rides.filter(r => r.status === 'active').length}</p>
+              <p className="text-2xl font-bold">{rides.filter(r => r.status === 'open').length}</p>
               <p className="text-xs text-muted-foreground">Active</p>
             </div>
           </div>
@@ -105,44 +142,62 @@ export function AdminPanel() {
             <h2 className="font-semibold text-foreground">All Ride Requests</h2>
           </div>
           <div className="overflow-x-auto">
+            <div className="flex gap-2 mb-4 pt-3">
+              <Button
+                variant={activeTab === 'active' ? 'default' : 'outline'}
+                onClick={() => setActiveTab('active')}
+              >
+                Active Rides
+              </Button>
+
+              <Button
+                variant={activeTab === 'history' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('history')}
+              >
+                Deleted History
+              </Button>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Creator</TableHead>
-                  <TableHead>Flight</TableHead>
+                  {/* <TableHead>Flight</TableHead> */}
                   <TableHead>Participants</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedRides.length === 0 ? (
+                {displayRides.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      No rides found
+                      {activeTab === 'active'
+                        ? 'No active rides'
+                        : 'No deleted rides'
+                      }
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedRides.map((ride) => (
-                    <TableRow key={ride.id}>
+                  displayRides.map((ride) => (
+                    <TableRow key={ride._id}>
                       <TableCell>
                         <div>
                           <p className="font-medium">{format(new Date(ride.date), 'MMM dd, yyyy')}</p>
-                          <p className="text-sm text-muted-foreground">{ride.time}</p>
+                          <p className="text-sm text-muted-foreground"> {format(new Date(ride.departureTime), 'hh:mm a')}</p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{ride.creatorName}</p>
-                          <p className="text-sm text-muted-foreground">{ride.creatorEmail}</p>
+                          <p className="font-medium">{getDisplayName(ride.creator.email)}</p>
+                          <p className="text-sm text-muted-foreground">{ride.creator.email}</p>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      {/* <TableCell>
                         <span className="text-sm">
                           {ride.flightDetails || <span className="text-muted-foreground">—</span>}
                         </span>
-                      </TableCell>
+                      </TableCell> */}
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Users className="w-4 h-4 text-muted-foreground" />
@@ -169,14 +224,14 @@ export function AdminPanel() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete Ride?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                This will permanently delete the ride created by {ride.creator} on {format(new Date(ride.date), 'MMM dd, yyyy')}. 
+                                This will permanently delete the ride created by {ride.creator.email} on {format(new Date(ride.date), 'MMM dd, yyyy')}. 
                                 This action cannot be undone.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => handleDelete(ride.id)}
+                                onClick={() => handleDelete(ride)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
                                 Delete

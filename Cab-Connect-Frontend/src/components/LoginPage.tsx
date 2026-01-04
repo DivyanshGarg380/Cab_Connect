@@ -173,7 +173,7 @@ export function LoginPage () {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-                  College Email
+                  Official College Email Address
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -182,14 +182,11 @@ export function LoginPage () {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="yourname@learner.manipal.edu"
+                    placeholder="example@learner.manipal.edu"
                     className="input-styled pl-12 w-full"
                     required
                   />
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Use your official college email address
-                </p>
               </div>
 
               {showAdminPassword && (
