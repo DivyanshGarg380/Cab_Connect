@@ -39,16 +39,24 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
 
   if (!ride) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm lg:relative lg:inset-auto lg:bg-transparent lg:backdrop-blur-none">
-      <div className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-card border-l border-border shadow-lg flex flex-col animate-slide-up lg:relative lg:animate-none">
+ return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0"
+        onClick={onClose}
+      />
+
+      {/* Chat Modal */}
+      <div className="relative w-full max-w-md h-[80vh] bg-card border border-border rounded-xl shadow-xl flex flex-col animate-in fade-in zoom-in duration-200">
+        
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div>
             <h3 className="font-semibold text-foreground">Group Chat</h3>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Users className="w-3 h-3" />
-              {ride.participants.length} members
+              {participants.length} members
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
@@ -59,7 +67,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
         {/* Participants */}
         <div className="px-4 py-3 border-b border-border bg-secondary/30">
           <div className="flex flex-wrap gap-2">
-            {ride.participants.map(p => (
+            {participants.map(p => (
               <span
                 key={p._id}
                 className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-background border border-border"
@@ -82,10 +90,19 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
             </div>
           ) : (
             rideMessages.map(msg => {
-              const isOwn = msg.sender._id === user?.id;
+              if(msg.type === 'system'){
+                return (
+                  <div key = {msg._id} className='flex justify-center'>
+                    <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
+                      {msg.text}
+                    </span>
+                  </div>
+                );
+              }
+              const isOwn = msg.sender._id === user.id;
               return (
                 <div
-                  key={msg.sender.email}
+                  key={msg._id}
                   className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
@@ -96,10 +113,12 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
                     }`}
                   >
                     {!isOwn && (
-                      <p className="text-xs font-medium opacity-70 mb-1">{msg.sender.email}</p>
+                      <p className="text-xs font-medium opacity-70 mb-1">
+                        {msg.sender?.email}
+                      </p>
                     )}
                     <p className="text-sm">{msg.text}</p>
-                    <p className={`text-[10px] mt-1 ${isOwn ? 'opacity-70' : 'text-muted-foreground'}`}>
+                    <p className="text-[10px] mt-1 opacity-70">
                       {format(new Date(msg.createdAt), 'h:mm a')}
                     </p>
                   </div>
@@ -125,6 +144,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
             </Button>
           </div>
         </form>
+
       </div>
     </div>
   );

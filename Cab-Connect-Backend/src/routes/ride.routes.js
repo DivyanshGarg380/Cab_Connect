@@ -7,6 +7,7 @@ import { io } from '../server.js';
 import banMiddleware from "../middleware/ban.middleware.js";
 import { expireOldRides } from '../jobs/expireRides.job.js';
 import Message from '../models/Message.model.js';
+import User from '../models/User.model.js';
 
 const router = express.Router();
 
@@ -131,6 +132,17 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
             await ride.save();
         }
 
+        const user = await User.findById(req.userId).select('email');
+        const userEmail = user?.email || 'Someone';
+
+        const systemMessage = await Message.create({
+            ride: rideId,
+            text: `${userEmail} joined the Chat`,
+            type: 'system',
+        });
+
+        io.to(rideId).emit('new-message', systemMessage);
+
         res.json({
             message: 'Joined ride successfully',
             ride,
@@ -169,6 +181,18 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
         }
         
         await ride.save();
+
+        const user = await User.findById(req.userId).select('email');
+        const userEmail = user?.email || 'Someone';
+
+        const systemMessage = await Message.create({
+            ride: rideId,
+            text: `${userEmail} left the Chat`,
+            type: 'system',
+        });
+
+        io.to(rideId).emit('new-message', systemMessage);
+
         res.json({
             message: 'Left ride successfully',
             ride,

@@ -223,11 +223,22 @@ export function RideProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    const hasUnread = Object.values(unread).some(Boolean);
+    const favicon = document.getElementById('favicon') as HTMLLinkElement | null;
+
+    if (!favicon) return;
+
+    favicon.href = hasUnread
+      ? '/favicon-unread.svg'
+      : '/favicon.svg';
+  }, [unread]);
+
+
   const clearUnread = (rideId: string) => {
     setUnread(prev => ({ ...prev, [rideId]: false }));
   };
 
-  
   return (
     <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide, fetchMessages, sendMessage, messages, clearUnread, unread}}>
       {children}

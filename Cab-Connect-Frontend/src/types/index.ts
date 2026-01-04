@@ -25,7 +25,8 @@ export interface Message {
   sender: {
     _id: string;
     email: string;
-  };
+  } | null;
   text: string;
+  type?: 'user' | 'system';
   createdAt: string;
 }

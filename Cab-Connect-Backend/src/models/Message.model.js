@@ -9,13 +9,18 @@ const MessageSchema = new mongoose.Schema({
     sender:{
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true
+        default: null,
     },
     text:{
         type: String,
         required: true,
-        trim: true
+        trim: true,
     },
+    type: {
+        type: String,
+        enum: ["user", "system"],
+        default: "user",
+    }
 }, {   timestamps: true })
 
 export default mongoose.models.Message || mongoose.model('Message', MessageSchema);
