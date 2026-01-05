@@ -32,10 +32,12 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
     });
 
     if (!res.ok) {
-      const err = await res.json();
       toast.error("Kicking Failed");
+      return;
     }
 
+    setMembers(prev => prev.filter(m => m._id !== participantId));
+    toast.success("User Removed");
     setShowMembers(false);
   };
 

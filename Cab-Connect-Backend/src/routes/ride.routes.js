@@ -367,9 +367,10 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
 
         await Notification.create({
             user: participantId,
-            message: `Removed from Ride
+            message:
+            `You were removed from a cab ride.
 
-            You were removed from a cab ride by ${ride.creator.email}.
+            Removed by: ${ride.creator.email}
 
             Destination: ${ride.destination === 'airport' ? 'Airport' : 'Campus'}
             Departure: ${formattedTime}
