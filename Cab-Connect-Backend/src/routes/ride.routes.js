@@ -384,8 +384,6 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
 
         io.in(participantId.toString()).socketsLeave(rideId.toString());
 
-
-
         res.json({ message: 'Participant removed' });
     } catch( error ){
         console.log('Kick Error: ', error);
