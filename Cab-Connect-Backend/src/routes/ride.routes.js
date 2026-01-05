@@ -336,9 +336,20 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
         }
 
         await ride.save();
+
+        const getDisplayName = (email) => {
+            const localPart = email.split('mit')[0];
+
+            return localPart
+            .replace(/\d+/g, '')               
+            .replace(/[._]/g, ' ')            
+            .trim()
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+        };
+
         const systemMessage = await Message.create({
             ride: rideId,
-            text: `${ride.creator.email} removed ${participant.email}`,
+            text: `${getDisplayName(ride.creator.email)} removed ${getDisplayName(participant.email)}`,
             type: 'system',
         });
 

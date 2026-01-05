@@ -4,6 +4,7 @@ import { useRides } from '@/contexts/RideContext';
 import { Button } from '@/components/ui/button';
 import { X, Send, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from "sonner";
 interface ChatPanelProps {
   rideId: string;
   onClose: () => void;
@@ -32,7 +33,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
 
     if (!res.ok) {
       const err = await res.json();
-      alert(err.message || 'Failed to remove user');
+      toast.error("Kicking Failed");
     }
 
     setShowMembers(false);
@@ -202,7 +203,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
             </div>
           ) : (
             rideMessages.map(msg => {
-              if(msg.type === 'system'){
+              if(msg.type === 'system' ){
                 return (
                   <div key = {msg._id} className='flex justify-center'>
                     <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
