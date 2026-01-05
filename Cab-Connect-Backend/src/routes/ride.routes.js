@@ -317,16 +317,18 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
             return res.status(400).json({ message: 'Creator cannot kick themselves' });
         }
 
-        const participant = ride.participants.find(
-            p => p._id.toString() === participantId.toString()
+        const participantIndex = ride.participants.findIndex(
+            p => p._id.toString() === String(participantId)
         );
 
-        if (!participant) {
+        if (participantIndex === -1) {
             return res.status(400).json({ message: 'User not in ride' });
         }
 
+        const participant = ride.participants[participantIndex];
+
         ride.participants = ride.participants.filter(
-            p => p._id.toString() !== participantId
+            p => p._id.toString() !== String(participantId)
         );
 
         if (ride.status === 'full' && ride.participants.length < 4) {

@@ -141,7 +141,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
         </div>
 
        {showMembers && (
-          <div className="absolute inset-0 z-50 bg-black/40 flex items-center justify-center">
+          <div className="absolute inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
             <div className="bg-card w-[520px] rounded-xl p-5 shadow-xl">
               
               {/* Header */}
@@ -158,50 +158,36 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
                 </Button>
               </div>
 
-              {/* Members Table */}
-              <div className="border rounded-lg overflow-hidden">
-                <table className="w-full text-sm table-fixed">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left px-4 py-2 font-medium w-[75%]">
-                        Email
-                      </th>
-
-                      {isCreator && (
-                        <th className="text-right px-4 py-2 font-medium w-[25%]">
-                          Action
-                        </th>
+              {/* Members List */}
+              <div className="border rounded-lg divide-y">
+                {members.map((p) => (
+                  <div
+                    key={p._id}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition"
+                  >
+                    {/* Email */}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium truncate max-w-[360px]">
+                        {p.email}
+                      </span>
+                      {p._id === ride.creator._id && (
+                        <span className="text-xs text-primary">Creator</span>
                       )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.map((p) => (
-                      <tr key={p._id} className="border-t">
-                        <td className="px-4 py-2 align-middle break-all">
-                          {p.email}
-                          {p._id === ride.creator._id && (
-                            <span className="ml-2 text-xs text-primary">(Creator)</span>
-                          )}
-                        </td>
+                    </div>
 
-                        {isCreator && (
-                          <td className="px-4 py-2 align-middle text-right">
-                            {p._id !== ride.creator._id && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="h-8 px-3"
-                                onClick={() => handleKick(p._id)}
-                              >
-                                Remove
-                              </Button>
-                            )}
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    {/* Action */}
+                    {isCreator && p._id !== ride.creator._id && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="h-8"
+                        onClick={() => handleKick(p._id.toString())}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
