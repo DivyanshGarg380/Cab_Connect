@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRides } from '@/contexts/RideContext';
 import { Header } from './Header';
 import { CreateRideModal } from './CreateRideModal';
@@ -6,12 +6,15 @@ import { RideCard } from './RideCard';
 import { ChatPanel } from './ChatPanel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, Calendar, Users, AlertCircle } from 'lucide-react';
+import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function Dashboard() {
   const { rides } = useRides();
   const [activeChatRide, setActiveChatRide] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [notification, setNotification] = useState<any>(null);
+
   const { user }  = useAuth();
   const now = new Date();
 
@@ -64,6 +67,22 @@ export function Dashboard() {
     });
   }, [rides, user]);
 
+  useEffect(() => {
+    const fetchNotification = async () => {
+      const res = await fetch('http://localhost:5000/notifications', {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      const data = await res.json();
+      if (data.notifications?.length > 0) {
+        setNotification(data.notifications[0]);
+      }
+    };
+
+    fetchNotification();
+  }, []);
 
   const displayRides = activeTab === 'all' ? activeRides : activeTab === 'my' ? myRides : expiredRides;
 
@@ -200,10 +219,38 @@ export function Dashboard() {
           onClose={() => setActiveChatRide(null)}
         />
       )}
+
+      {/* Kick Participant */}
+      {notification && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+          <div className="bg-card w-96 rounded-xl p-6">
+            <h3 className="font-semibold text-lg mb-3">
+              Ride Update
+            </h3>
+
+            <pre className="text-sm whitespace-pre-wrap mb-4">
+              {notification.message}
+            </pre>
+
+            <Button
+              className="w-full"
+              onClick={async () => {
+                await fetch(`http://localhost:5000/notifications/${notification._id}/read`, {
+                  method: 'PATCH',
+                  headers: {
+                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+                  },
+                });
+                setNotification(null);
+              }}
+            >
+              OK
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
-
-
 }
 function EmptyState({ message }: { message: string }) {
   return (

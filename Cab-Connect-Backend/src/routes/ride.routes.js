@@ -8,6 +8,7 @@ import banMiddleware from "../middleware/ban.middleware.js";
 import { expireOldRides } from '../jobs/expireRides.job.js';
 import Message from '../models/Message.model.js';
 import User from '../models/User.model.js';
+import Notification from "../models/Notification.model.js";
 
 const router = express.Router();
 
@@ -232,6 +233,23 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
+router.get('/:id', authMiddleware, async (req, res) => {
+    try {
+        const ride = await Ride.findById(req.params.id)
+            .populate('creator', 'email')
+            .populate('participants', 'email');
+
+        if (!ride) {
+            return res.status(404).json({ message: 'Ride not found' });
+        }
+
+        res.json({ ride });
+    } catch (error) {
+        console.log('Fetch Ride Error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 router.get('/', authMiddleware, async (req, res) => {
   const rides = await Ride.find()
     .populate('creator', 'email')
@@ -280,6 +298,79 @@ router.post('/:id/messages', authMiddleware, banMiddleware, async (req, res) => 
         console.error('Send Message Error:', err);
         res.status(500).json({ message: 'Server error' });
     }
-})
+});
+
+router.post('/:id/kick', authMiddleware, async (req, res) => {
+    try {
+        const rideId = req.params.id;
+        const { participantId } = req.body;
+        const creatorId = req.userId;
+
+        const ride = await Ride.findById(rideId).populate('creator', 'email').populate('participants', 'email');
+        if(!ride){
+            return res.status(400).json({ message: 'Ride not found' });
+        }
+        if(ride.creator._id.toString() !== creatorId){
+            return res.status(403).json({ message: 'Only creator can Kick Users' });
+        }
+        if(participantId.toString() == creatorId.toString()){
+            return res.status(400).json({ message: 'Creator cannot kick themselves' });
+        }
+
+        const participant = ride.participants.find(
+            p => p._id.toString() === participantId.toString()
+        );
+
+        if (!participant) {
+            return res.status(400).json({ message: 'User not in ride' });
+        }
+
+        ride.participants = ride.participants.filter(
+            p => p._id.toString() !== participantId
+        );
+
+        if (ride.status === 'full' && ride.participants.length < 4) {
+            ride.status = 'open';
+        }
+
+        await ride.save();
+        const systemMessage = await Message.create({
+            ride: rideId,
+            text: `${ride.creator.email} removed ${participant.email}`,
+            type: 'system',
+        });
+
+        io.to(rideId).emit('new-message', systemMessage);
+
+        const time = new Date(ride.departureTime).toLocaleString();
+
+        const formattedTime = new Date(ride.departureTime).toLocaleString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+        });
+
+        await Notification.create({
+            user: participantId,
+            message: `Removed from Ride
+
+            You were removed from a cab ride by ${ride.creator.email}.
+
+            Destination: ${ride.destination === 'airport' ? 'Airport' : 'Campus'}
+            Departure: ${formattedTime}
+
+            If this was a mistake, please contact the ride creator.`,
+        });
+
+        io.to(participantId).emit('kicked-from-ride', { rideId });
+
+        res.json({ message: 'Participant removed' });
+    } catch( error ){
+        console.log('Kick Error: ', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 export default router;

@@ -18,6 +18,26 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isClosing, setIsClosing] = useState(false);
 
+  const [showMembers, setShowMembers] = useState(false);
+
+  const handleKick = async (participantId: string) => {
+    const res = await fetch(`http://localhost:5000/rides/${rideId}/kick`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+      },
+      body: JSON.stringify({ participantId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.message || 'Failed to remove user');
+    }
+
+    setShowMembers(false);
+  };
+
   const handleClose = () => {
     if (isClosing) return;
     setIsClosing(true);
@@ -25,9 +45,25 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
   };
 
   const ride = rides.find(r => r._id === rideId);
-  const participants = ride?.participants ?? [];
+  const isCreator = user.id === ride.creator._id;
   const rideMessages = messages?.[rideId] ?? [];
   if(!user || !ride) return null;
+
+  const [members, setMembers] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRideMembers = async () => {
+      const res = await fetch(`http://localhost:5000/rides/${rideId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+      });
+      const data = await res.json();
+      setMembers(data.ride.participants);
+    };
+
+    fetchRideMembers();
+  }, [rideId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -89,8 +125,14 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
           <div>
             <h3 className="font-semibold text-foreground">Group Chat</h3>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Users className="w-3 h-3" />
-              {participants.length} members
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMembers(true)}
+              >
+                <Users className="w-4 h-4 mr-1" />
+                Members
+              </Button>
             </div>
           </div>
           <Button variant="ghost" size="icon" onClick={handleClose}>
@@ -98,22 +140,72 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
           </Button>
         </div>
 
-        {/* Participants */}
-        <div className="px-4 py-3 border-b border-border bg-secondary/30">
-          <div className="flex flex-wrap gap-2">
-            {participants.map(p => (
-              <span
-                key={p._id}
-                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-background border border-border"
-              >
-                {p.email}
-                {p._id === ride.creator._id && (
-                  <span className="ml-1 text-primary">★</span>
-                )}
-              </span>
-            ))}
+       {showMembers && (
+          <div className="absolute inset-0 z-50 bg-black/40 flex items-center justify-center">
+            <div className="bg-card w-[520px] rounded-xl p-5 shadow-xl">
+              
+              {/* Header */}
+              <div className="flex justify-between items-center mb-3 border-b pb-2">
+                <h4 className="font-semibold text-lg">
+                  Ride Members ({members.length})
+                </h4>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setShowMembers(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Members Table */}
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-sm table-fixed">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-medium w-[75%]">
+                        Email
+                      </th>
+
+                      {isCreator && (
+                        <th className="text-right px-4 py-2 font-medium w-[25%]">
+                          Action
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map((p) => (
+                      <tr key={p._id} className="border-t">
+                        <td className="px-4 py-2 align-middle break-all">
+                          {p.email}
+                          {p._id === ride.creator._id && (
+                            <span className="ml-2 text-xs text-primary">(Creator)</span>
+                          )}
+                        </td>
+
+                        {isCreator && (
+                          <td className="px-4 py-2 align-middle text-right">
+                            {p._id !== ride.creator._id && (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="h-8 px-3"
+                                onClick={() => handleKick(p._id)}
+                              >
+                                Remove
+                              </Button>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
