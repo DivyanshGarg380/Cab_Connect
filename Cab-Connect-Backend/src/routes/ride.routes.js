@@ -378,7 +378,13 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
             If this was a mistake, please contact the ride creator.`,
         });
 
-        io.to(participantId).emit('kicked-from-ride', { rideId });
+        io.to(participantId.toString()).emit('ride:kicked', {
+         rideId: rideId.toString(),
+        });
+
+        io.in(participantId.toString()).socketsLeave(rideId.toString());
+
+
 
         res.json({ message: 'Participant removed' });
     } catch( error ){

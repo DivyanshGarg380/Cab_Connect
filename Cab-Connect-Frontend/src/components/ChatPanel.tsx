@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { X, Send, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from "sonner";
+import { socket } from '@/lib/socket';
 interface ChatPanelProps {
   rideId: string;
   onClose: () => void;
@@ -96,6 +97,17 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleClose]);
 
+  useEffect(() => {
+    socket.on("ride:kicked", ({ rideId: kickedRideId }) => {
+      if (kickedRideId === rideId) {
+        toast.error("You were removed from this ride");
+        onClose();
+      }
+    });
+
+    return () =>{ socket.off("ride:kicked"); };
+  }, [rideId]);
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (newMessage.trim()) {
@@ -103,6 +115,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
       setNewMessage('');
     }
   };
+
 
   if (!ride) return null;
 
