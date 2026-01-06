@@ -20,9 +20,6 @@ app.get('/', (req, res) => {
 });
 app.set("trust proxy", 1);
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ ok: true });
-});
 
 app.use('/auth', authRoutes);
 app.use('/rides', rideRoutes);
