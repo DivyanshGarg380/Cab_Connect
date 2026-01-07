@@ -1,4 +1,5 @@
 import Report from "../models/Report.model.js";
+import User from "../models/User.model.js";
 
 export const getAllReports = async (req, res) => {
   try {
@@ -14,3 +15,79 @@ export const getAllReports = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const takeActionOnReport = async (req, res) => {
+  try{
+    const { reportId } = req.params;
+    const { action, adminNote } = req.body;
+    
+    if(!action){
+      return res.status(400).json({
+        message: "Action is Required"
+      });
+    }
+
+    const report = await Report.findById(reportId);
+    if(!report){
+      return res.status(404).json({
+        message: "Report not found"
+      });
+    }
+
+    // preventing double action 
+    if(report.status === 'action_taken' || report.status === "dismissed"){
+      return res.status(400).json({
+        message: "Action already taken on this report",
+      });
+    }
+
+    // dismiss
+
+    if(action == "dismiss"){
+      report.status = "dismissed";
+      report.adminNote = adminNote || "";
+      await report.save();
+
+      return res.json({
+        message: "Report dismissed"
+      });
+    }
+
+    // Ban user ( 1 report => 1 strike ( 1/3))
+    if(action == "ban"){
+      const user = await User.findById(report.reportedUser);
+
+      if(!user){
+        return res.status(404).json({ message: "Reported user not found" });
+      }
+
+      user.banCount += 1;
+
+      if(user.banCount >= 3){
+        user.isPermanantlyBanned = true;
+        user.banUntil = null;
+      }else{
+        user.banUntil = new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000
+        );
+      }
+
+      await user.save();
+
+      report.status = "action_taken";
+      report.adminNote = adminNote || "User banned based on report";
+      await report.save();
+
+      return res.json({
+        message: user.isPermanantlyBanned 
+          ? "User permanently banned"
+          : "User banned for 7 days",
+          banCount: user.banCount,
+      });
+    }
+    return res.status(400).json({ message: "Invalid action type" });
+  }catch (error) {
+    console.error("Admin report action error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+}
