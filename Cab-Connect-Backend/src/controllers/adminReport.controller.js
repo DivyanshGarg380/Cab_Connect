@@ -1,5 +1,7 @@
 import Report from "../models/Report.model.js";
 import User from "../models/User.model.js";
+import Notification from "../models/Notification.model.js";
+import { io } from "../server.js";
 
 export const getAllReports = async (req, res) => {
   try {
@@ -48,6 +50,15 @@ export const takeActionOnReport = async (req, res) => {
       report.adminNote = adminNote || "";
       await report.save();
 
+      await Notification.create({
+        user: report.reporter,
+        message: "Your report has been reviewed and dismissed by admin.",
+      });
+
+      io.to(report.reporter.toString()).emit("user-notification", {
+        message: "Your report was dismissed",
+      });
+
       return res.json({
         message: "Report dismissed"
       });
@@ -77,6 +88,26 @@ export const takeActionOnReport = async (req, res) => {
       report.status = "action_taken";
       report.adminNote = adminNote || "User banned based on report";
       await report.save();
+
+      await Notification.create({
+        user: report.reporter,
+        message: "Your report was reviewed and action has been taken."
+      });
+
+      io.to(report.reporter.toString()).emit("user-notification", {
+        message: "Admin took action on your report",
+      });
+
+      await Notification.create({
+        user: user._id,
+        message: user.isPermanantlyBanned
+            ? "You have been permanently banned due to policy violations."
+            : "You have been termporarily banned for 7 days due to policy violations.",
+      });
+
+      io.to(user._id.toString()).emit("user-notification", {
+        message: "Admin action taken on your account",
+      });
 
       return res.json({
         message: user.isPermanantlyBanned 

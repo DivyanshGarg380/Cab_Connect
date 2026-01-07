@@ -1,6 +1,8 @@
 import Report from "../models/Report.model.js";
 import Ride from "../models/Ride.model.js";
 import User from "../models/User.model.js";
+import Notification from "../models/Notification.model.js";
+import { io } from "../server.js";
 
 export const createReport = async (req, res) => {
     try{
@@ -62,6 +64,19 @@ export const createReport = async (req, res) => {
             destination: ride.destination,
             description,
         });
+
+        const admins = await User.find({ role: "admin" });
+
+        for(const admin of admins){
+            await Notification.create({
+                user: admin._id,
+                message: "New user report submitted. Review required.",
+            });
+
+            io.to(admin._id.toString()).emit("admin-notification", {
+                message: "New user report submitted",
+            });
+        }
 
         return res.status(201).json({
             message: "Report submitted successfully",
