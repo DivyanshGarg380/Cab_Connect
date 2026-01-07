@@ -38,9 +38,9 @@ export function Header() {
         {/* Navigation Links */}
         <div className="flex items-center space-x-6">
           <Link
-            to="/dashboard"
+            to="/"
             className={`text-sm font-medium transition-colors ${
-              location.pathname === '/dashboard'
+              location.pathname === '/'
                 ? 'text-gray-900'
                 : 'text-gray-600 hover:text-gray-900'
             }`}

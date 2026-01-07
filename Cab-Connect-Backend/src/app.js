@@ -6,6 +6,9 @@ import rideRoutes from './routes/ride.routes.js';
 import { apiLimit } from './middleware/rateLimit.middleware.js';
 import adminRoutes from './routes/admin.route.js';
 import notificationRoutes from './routes/notification.route.js';
+import reportRoutes from "./routes/report.routes.js";
+import adminReportRoutes from "./routes/adminReport.routes.js";
+
 
 
 const app = express();
@@ -25,6 +28,8 @@ app.use('/auth', authRoutes);
 app.use('/rides', rideRoutes);
 app.use('/admin', adminRoutes);
 app.use('/notifications', notificationRoutes);
+app.use("/reports", reportRoutes);
+app.use("/admin/reports", adminReportRoutes);
 
 
 

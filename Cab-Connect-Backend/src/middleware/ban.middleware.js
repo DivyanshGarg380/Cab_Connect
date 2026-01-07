@@ -17,7 +17,7 @@ const banMiddleware = async (req, res, next) => {
     }
     
     // permanent ban
-    if(user.isPermanentyBanned){
+    if(user.isPermanantlyBanned){
         return res.status(403).json({
             message: 'You are permanently banned from this action',
         })
