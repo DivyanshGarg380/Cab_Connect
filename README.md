@@ -152,6 +152,9 @@ RBAC is enforced using centralized middleware.
 - No auto-unban
 - Still allowed:
   - Joining rides
+ 
+
+> **Note:** The moderation system uses a strike-based enforcement model where repeated violations lead to permanent bans.
 
 ---
 
