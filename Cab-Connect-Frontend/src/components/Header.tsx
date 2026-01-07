@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Plane, LogOut, User, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
+import ReportModal from "@/components/ReportModal";
 
 export function Header() {
   const { user, logout, isAdmin, isLoading } = useAuth();
   const location = useLocation();
   if(isLoading) return null;
+
+  const [showReport, setShowReport] = useState(false);
 
   const getDisplayName = (email: string) => {
     const localPart = email.split('mit')[0];
@@ -64,17 +67,14 @@ export function Header() {
           )}
         </div>
 
-        {/* User Info & Logout */}
+        {/* User Info & Logout & Report */}
         <div className="flex items-center space-x-4">
           {/* Report Button */}
           <Button
             variant="ghost"
             size="sm"
             className="flex items-center space-x-1 text-red-500 hover:text-red-600"
-            onClick={() => {
-              // TODO: open report modal later
-              console.log("Report button clicked");
-            }}
+            onClick={() => setShowReport(true)}
           >
             <AlertTriangle className="w-4 h-4" />
             <span className="text-sm">Report</span>
@@ -98,9 +98,7 @@ export function Header() {
             <LogOut className="w-4 h-4" />
             <span>Logout</span>
           </Button>
-
         </div>
-
       </div>
     </nav>
   );
