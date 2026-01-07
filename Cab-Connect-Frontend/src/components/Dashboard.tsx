@@ -8,7 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, Calendar, Users, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { searchPanel } from "@/utils/searchPanel"
+import { searchPanel } from "@/utils/searchPanel";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 export function Dashboard() {
   const { rides } = useRides();
@@ -186,15 +188,23 @@ export function Dashboard() {
             {searchedRides.length === 0 ? (
               <EmptyState message="No rides match your search." />
             ) : (
-              searchedRides
-                .filter(r => r.creator && r.participants)
-                .map(ride => (
-                  <RideCard
+              <AnimatePresence>
+                {searchedRides.filter(r => r.creator && r.participants).map(ride => (
+                  <motion.div
                     key={ride._id}
-                    ride={ride}
-                    onOpenChat={setActiveChatRide}
-                  />
-                ))
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                  >
+                    <RideCard
+                      ride={ride}
+                      onOpenChat={setActiveChatRide}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </TabsContent>
           
