@@ -157,7 +157,7 @@ export function Dashboard() {
                   Destination
                 </p>
                 <p className="text-sm text-gray-600">
-                  All rides go to and from the Airport
+                  All rides go to and from the IXE Airport
                 </p>
               </div>
             </div>
