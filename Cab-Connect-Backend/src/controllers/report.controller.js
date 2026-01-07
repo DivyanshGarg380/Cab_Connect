@@ -8,7 +8,11 @@ export const createReport = async (req, res) => {
     try{
 
         const { rideId, reportedUserEmail, description } = req.body;
-        const reportedId = req.userId;
+        const reporterId = req.userId;
+
+        if (!reporterId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
 
         if(!rideId || !reportedUserEmail || !description){
             return res.status(400).json({ message: "Missing required fields" });
@@ -26,13 +30,19 @@ export const createReport = async (req, res) => {
         }
 
         // reporter is a part of the ride ofc
-        if(!ride.participants.some(p => p._id.toString() === reportedId)){
+        if(!ride.participants.some(p => p._id.toString() === reporterId)){
             return res.status(403).json({
                 message: "You are not part of this ride",
             });
         }
+        if (typeof reportedUserEmail !== "string") {
+            return res.status(400).json({
+                message: "Invalid reported user email",
+            });
+        }
+
         const reportedUser = await User.findOne({
-            email: reportedUserEmail.toLowercase(),
+            email: reportedUserEmail.toLowerCase(),
         });
 
         if(!reportedUser){
@@ -50,14 +60,14 @@ export const createReport = async (req, res) => {
             });
         }
 
-        if(reportedUser._id.toString() === reportedId){
+        if(reportedUser._id.toString() === reporterId){
             return res.status(400).json({
                 message: "You cannot report yourself :)",
             });
         }
 
         const report = await Report.create({
-            report: reportedId,
+            reporter: reporterId,
             reportedUser: reportedUser._id,
             ride: ride._id,
             rideDate: ride.date,
