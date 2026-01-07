@@ -8,12 +8,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, Calendar, Users, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { searchPanel } from "@/utils/searchPanel"
 
 export function Dashboard() {
   const { rides } = useRides();
   const [activeChatRide, setActiveChatRide] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('all');
   const [notification, setNotification] = useState<any>(null);
+
+  // searching part
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { user }  = useAuth();
   const now = new Date();
@@ -84,6 +88,17 @@ export function Dashboard() {
     fetchNotification();
   }, []);
 
+  const baseRides =
+    activeTab === 'all'
+      ? activeRides
+      : activeTab === 'my'
+      ? myRides
+      : expiredRides;
+
+  const searchedRides = useMemo(() => {
+    return searchPanel(baseRides, searchQuery);
+  }, [baseRides, searchQuery]);
+
   const displayRides = activeTab === 'all' ? activeRides : activeTab === 'my' ? myRides : expiredRides;
 
   return (
@@ -151,7 +166,8 @@ export function Dashboard() {
           {/* SEARCH */}
           <input
             type="text"
-            placeholder="Search by date, location, or creator..."
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by DD/MM/YYYY, destination, or email..."
             className="w-full max-w-xl px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600"
           />
         </div>
@@ -167,10 +183,10 @@ export function Dashboard() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
-            {activeRides.length === 0 ? (
-              <EmptyState message="No active rides available. Be the first to create one!" />
+            {searchedRides.length === 0 ? (
+              <EmptyState message="No rides match your search." />
             ) : (
-              activeRides
+              searchedRides
                 .filter(r => r.creator && r.participants)
                 .map(ride => (
                   <RideCard
@@ -181,7 +197,7 @@ export function Dashboard() {
                 ))
             )}
           </TabsContent>
-
+          
           <TabsContent value="my" className="space-y-4">
             {myRides.length === 0 ? (
               <EmptyState message="You haven't joined any rides yet. Browse active rides and join one!" />
@@ -257,6 +273,21 @@ function EmptyState({ message }: { message: string }) {
     <div className="card-elevated p-12 text-center">
       <AlertCircle className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
       <p className="text-muted-foreground">{message}</p>
+    </div>
+  );
+}
+
+
+function Stat({ icon, value, label, sub }: any) {
+  return (
+    <div className="flex items-center space-x-4 bg-gray-50 rounded-lg p-6">
+      <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+        {icon}
+      </div>
+      <div>
+        <p className="text-3xl font-bold text-gray-900">{value ?? label}</p>
+        <p className="text-sm text-gray-600">{sub ?? label}</p>
+      </div>
     </div>
   );
 }
