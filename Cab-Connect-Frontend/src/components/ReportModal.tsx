@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import { AlertTriangle, X } from "lucide-react";
 
 export default function ReportModal({ ride, currentUserId, onClose }){
     const [reportedUserId, setReportedUserId] = useState("");
@@ -45,51 +46,93 @@ export default function ReportModal({ ride, currentUserId, onClose }){
         }
     };
 
-    return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-3">Report User</h2>
+     return (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
+        <div className="bg-white w-full max-w-md rounded-xl shadow-xl overflow-hidden">
 
-            {/* USER DROPDOWN */}
-            <select
-            className="w-full border p-2 rounded mb-3"
-            value={reportedUserId}
-            onChange={(e) => setReportedUserId(e.target.value)}
-            >
-            <option value="">Select user</option>
-            {ride.participants
-                .filter(p => p._id !== currentUserId)
-                .map(p => (
-                <option key={p._id} value={p._id}>
-                    {p.email}
-                </option>
-                ))}
-            </select>
-
-            {/* RIDE INFO */}
-            <div className="text-sm text-muted-foreground mb-3">
-            <p> {ride.destination}</p>
-            <p> {ride.date}</p>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b">
+            <div className="flex items-center gap-2 text-red-600">
+                <AlertTriangle className="w-5 h-5" />
+                <h2 className="text-lg font-semibold">Report User</h2>
             </div>
 
-            {/* DESCRIPTION */}
-            <textarea
-            className="w-full border p-2 rounded mb-3"
-            rows={4}
-            placeholder="What happened? (min 30 characters)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            />
+            <button
+                onClick={onClose}
+                className="text-muted-foreground hover:text-foreground"
+            >
+                <X className="w-4 h-4" />
+            </button>
+            </div>
 
-            <div className="flex justify-end gap-2">
+            {/* Content */}
+            <div className="px-6 py-5 space-y-4">
+
+            {/* Ride Context */}
+            <div className="bg-muted/40 rounded-lg p-3 text-sm">
+                <p className="font-medium">Ride Information</p>
+                <p className="text-muted-foreground capitalize">
+                Destination: {ride.destination}
+                </p>
+                <p className="text-muted-foreground">
+                Date: {ride.date}
+                </p>
+            </div>
+
+            {/* User Select */}
+            <div>
+                <label className="text-sm font-medium mb-1 block">
+                User to report
+                </label>
+                <select
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                value={reportedUserId}
+                onChange={(e) => setReportedUserId(e.target.value)}
+                >
+                <option value="">Select a user</option>
+                {ride.participants
+                    .filter((p) => p._id !== currentUserId)
+                    .map((p) => (
+                    <option key={p._id} value={p._id}>
+                        {p.email}
+                    </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Description */}
+            <div>
+                <label className="text-sm font-medium mb-1 block">
+                What happened?
+                </label>
+                <textarea
+                rows={4}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="Describe the issue clearly (minimum 30 characters)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                {description.length}/30 characters
+                </p>
+            </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t flex justify-end gap-2">
             <Button variant="ghost" onClick={onClose}>
                 Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-                {loading ? "Submitting..." : "Submit"}
+
+            <Button
+                variant="destructive"
+                disabled={loading}
+                onClick={handleSubmit}
+            >
+                {loading ? "Submitting..." : "Submit Report"}
             </Button>
             </div>
         </div>
-        </div>
-    );
+    </div>
+  );
 }

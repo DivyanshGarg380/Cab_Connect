@@ -8,7 +8,9 @@ import { Calendar, Users, MessageCircle, Clock, MapPin } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { toast } from 'sonner';
 import { useRides } from '@/contexts/RideContext';
-
+import { AlertTriangle } from 'lucide-react';
+import ReportModal from './ReportModal';
+import { useState } from 'react';
 interface RideCardProps {
   ride: Ride;
   onOpenChat: (rideId: string) => void;
@@ -106,6 +108,8 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
     }
   };
 
+  const [showReport, setShowReport] = useState(false);
+
   return (
     <Card className="p-6 hover:shadow-md transition-shadow">
       <div className="space-y-4">
@@ -191,8 +195,20 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
           </div>
 
           <div className="flex gap-2">
+            {(isParticipant || isCreator) && !isExpired && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-red-500 hover:text-red-600"
+                onClick={() => setShowReport(true)}
+              >
+                <AlertTriangle className="w-4 h-4 mr-1" />
+                Report
+              </Button>
+            )}
+
             {canJoin && (
-              <Button variant = "gradient" size="sm" onClick={handleJoinRide}>
+              <Button variant="gradient" size="sm" onClick={handleJoinRide}>
                 Join Ride
               </Button>
             )}
@@ -212,15 +228,21 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
                 size="sm"
                 variant="outline"
                 onClick={handleLeaveRide}
-                className='text-red-600 hover:text-red-700 hover:bg-red-50'
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
               >
                 Leave Ride
               </Button>
             )}
           </div>
         </div>
-
       </div>
+      {showReport && user && (
+        <ReportModal
+          ride={ride}
+          currentUserId={user.id}
+          onClose={() => setShowReport(false)}
+        />
+      )}
     </Card>
   );
 }
