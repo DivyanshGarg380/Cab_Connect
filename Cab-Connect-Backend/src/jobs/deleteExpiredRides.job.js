@@ -36,6 +36,18 @@ export const deleteExpiredRides = async () => {
             });
         });
 
+        rideIds.forEach((id) => {
+            io.emit("ride:updated", {
+                rideId: id.toString(),
+                type: "delete",
+                ride: null,
+            });
+
+            io.to(id.toString()).emit("ride-ended", {
+                message: "Ride deleted",
+            });
+        });
+
         console.log(`Cleanup: deleted ${rideIds.length} expired rides`);
     } catch (error) {
         console.log('Error deleting expired rides: ', error);

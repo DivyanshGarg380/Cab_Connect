@@ -109,6 +109,27 @@ export function RideProvider({ children }: { children: ReactNode }) {
     };
   }, []); 
 
+  useEffect(() => {
+    socket.on("ride:updated", ({ rideId, type, ride }) => {
+      setRides(prev => {
+        if (type === "delete") {
+          return prev.filter(r => r._id !== rideId);
+        }
+
+        const exists = prev.find(r => r._id === rideId);
+        if (exists) {
+          return prev.map(r => r._id === rideId ? ride : r);
+        }
+
+        return [...prev, ride];
+      });
+    });
+
+    return () => {
+      socket.off("ride:updated");
+    };
+  }, []);
+
   const joinRide = async (rideId: string) => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;

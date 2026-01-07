@@ -85,6 +85,12 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
             status: 'open',
         });
 
+        io.emit("ride:updated", {
+            rideId: ride._id.toString(),
+            type: "create",
+            ride
+        });
+
         res.status(201).json({
             message: 'Ride created successfully',
             ride,
@@ -133,6 +139,13 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
             await ride.save();
         }
 
+        io.to(rideId).emit("ride:updated", {
+            rideId,
+            type: "join",
+            ride
+        });
+
+
         const user = await User.findById(req.userId).select('email');
         const userEmail = user?.email || 'Someone';
 
@@ -180,8 +193,20 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
         if(ride.status === 'full' && ride.participants.length < 4) {
             ride.status = 'open';
         }
-        
+
+        io.to(rideId).emit("ride:updated", {
+            rideId,
+            type: "status",
+            ride
+        });
+
         await ride.save();
+
+        io.to(rideId).emit("ride:updated", {
+            rideId,
+            type: "leave",
+            ride
+        });
 
         const user = await User.findById(req.userId).select('email');
         const userEmail = user?.email || 'Someone';
@@ -223,6 +248,12 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
         io.to(rideId).emit('ride-ended', {
             message: 'Ride was deleted by the creator',
+        });
+
+        io.emit("ride:updated", {
+            rideId,
+            type: "delete",
+            ride: null
         });
         
         res.json({ message: 'Ride deleted successfully' });
@@ -335,7 +366,19 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
             ride.status = 'open';
         }
 
+        io.to(rideId).emit("ride:updated", {
+            rideId,
+            type: "status",
+            ride
+        });
+
         await ride.save();
+
+        io.to(rideId).emit("ride:updated", {
+            rideId,
+            type: "kick",
+            ride
+        });
 
         const getDisplayName = (email) => {
             const localPart = email.split('mit')[0];
