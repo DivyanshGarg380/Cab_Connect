@@ -3,8 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Plane, LogOut, User, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
-import ReportModal from "@/components/ReportModal";
 
 export function Header() {
   const { user, logout, isAdmin, isLoading } = useAuth();
@@ -69,17 +67,6 @@ export function Header() {
 
         {/* User Info & Logout & Report */}
         <div className="flex items-center space-x-4">
-          {/* Report Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex items-center space-x-1 text-red-500 hover:text-red-600"
-            onClick={() => setShowReport(true)}
-          >
-            <AlertTriangle className="w-4 h-4" />
-            <span className="text-sm">Report</span>
-          </Button>
-
           {/* User Info */}
           <div className="flex items-center space-x-2 text-sm">
             <User className="w-4 h-4 text-gray-600" />
