@@ -45,6 +45,13 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 - Real-time socket notifications
 - Used for admin actions (ride deletion, bans)
 
+### 🚨 User Reporting & Moderation
+- Ride-scoped user reporting system
+- Structured report submission (no free-text abuse)
+- One report per user per ride per target (anti-spam)
+- Context-aware validation (only ride participants can report)
+- Admin review pipeline with report statuses
+
 ---
 
 ## 🏗️ System Architecture
