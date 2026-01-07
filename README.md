@@ -134,6 +134,7 @@ Cab_Connect/
 | User  | Create / Join rides, Chat         |
 | Admin | All user permissions + moderation |
 ---------------------------------------------
+
 RBAC is enforced using centralized middleware.
 
 ---
