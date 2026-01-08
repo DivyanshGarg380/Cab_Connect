@@ -101,13 +101,20 @@ export function AuthProvider({ children }: { children: ReactNode}){
 
       if(!res.ok) return;
       const data = await res.json();
-      if (data.notifications?.length > 0) {
-        setActiveNotification({
-          _id: data.notifications[0]._id,
-          title: 'Ride Removed',
-          message: data.notifications[0].message,
-        });
-      }
+
+      const msg = data.notifications[0].message;
+
+      let title = 'Notification';
+      if (msg.toLowerCase().includes('banned')) title = 'Account Action';
+      else if (msg.toLowerCase().includes('report')) title = 'Report Update';
+      else if (msg.toLowerCase().includes('ride')) title = 'Ride Update';
+
+      setActiveNotification({
+        _id: data.notifications[0]._id,
+        title,
+        message: msg,
+      });
+
     }catch(err){
       console.log('Fetch notifications error', err);
     }

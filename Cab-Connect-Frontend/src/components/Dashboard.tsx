@@ -251,7 +251,11 @@ export function Dashboard() {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
           <div className="bg-card w-96 rounded-xl p-6">
             <h3 className="font-semibold text-lg mb-3">
-              Ride Update
+              {notification.message.includes("banned")
+                ? "Report Update"
+                : notification.message.includes("ride")
+                ? "Ride Update"
+                : "Notification"}
             </h3>
 
             <pre className="text-sm whitespace-pre-wrap mb-4">

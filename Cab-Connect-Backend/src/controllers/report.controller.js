@@ -6,7 +6,6 @@ import { io } from "../server.js";
 
 export const createReport = async (req, res) => {
     try{
-
         const { rideId, reportedUserEmail, description } = req.body;
         const reporterId = req.userId;
 
@@ -34,11 +33,6 @@ export const createReport = async (req, res) => {
         if(!ride.participants.some(p => p._id.toString() === reporterId)){
             return res.status(403).json({
                 message: "You are not part of this ride",
-            });
-        }
-        if (typeof reportedUserEmail !== "string") {
-            return res.status(400).json({
-                message: "Invalid reported user email",
             });
         }
 

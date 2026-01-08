@@ -92,7 +92,7 @@ export const takeActionOnReport = async (req, res) => {
 
       await Notification.create({
         user: report.reporter,
-        message: "Your report was reviewed and action has been taken."
+        message: "Your report was reviewed and the reported user has been banned."
       });
 
       io.to(report.reporter.toString()).emit("user-notification", {
