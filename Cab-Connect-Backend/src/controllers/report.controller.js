@@ -25,6 +25,7 @@ export const createReport = async (req, res) => {
         }
 
         const ride = await Ride.findById(rideId).populate("participants");
+        
         if(!ride){
             return res.status(404).json({ message: "Ride not found" });
         }

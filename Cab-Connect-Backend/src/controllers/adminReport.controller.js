@@ -9,6 +9,7 @@ export const getAllReports = async (req, res) => {
       .populate("reporter", "email")
       .populate("reportedUser", "email")
       .populate("ride", "date destination departureTime")
+      .populate("reportedUser", "email banCount isPermanantlyBanned banUntil")
       .sort({ createdAt: -1 });
 
     res.json({ reports });
