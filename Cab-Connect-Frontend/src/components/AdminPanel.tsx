@@ -330,7 +330,7 @@ export function AdminPanel() {
                               </Badge>
                             ) : report.status === "action_taken" ? (
                               <div className="flex flex-col items-end gap-1">
-                                <Badge className="bg-warning/20 text-warning border-warning/30">
+                                <Badge className="text-muted-foreground" variant='outline'>
                                   Temporarily Banned
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">
