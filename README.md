@@ -76,10 +76,11 @@ MongoDB Atlas
 ## 🛠 Tech Stack
 
 ### Frontend
-- React
+- Typescript
 - Tailwind CSS
 - Context API
-- Axios
+- Fetch
+- Bun
 
 ### Backend
 - Node.js
