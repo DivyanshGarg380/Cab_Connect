@@ -77,7 +77,7 @@ router.post('/ban/:userId', authMiddleware, adminMiddleware, async (req, res) =>
 
         user.banCount += 1;
         if(user.banCount >= 3){
-            user.isPermanentlyBanned = true;
+            user.isPermanantlyBanned = true;
             user.banUntil = null;
         }else{
             // 7 day ban cycle begins
@@ -88,7 +88,7 @@ router.post('/ban/:userId', authMiddleware, adminMiddleware, async (req, res) =>
 
         await user.save();
         res.json({
-            message: user.isPermanentlyBanned ?
+            message: user.isPermanantlyBanned ?
                 'User Permanently banned' :
                 'User banned for 7 days',
             banCount: user.banCount,
@@ -107,7 +107,7 @@ router.post('/unban/:userId', authMiddleware, adminMiddleware, async( req, res)=
             return res.status(404).json({ message: 'User not found' });
         }
         
-        if(user.isPermanentlyBanned){
+        if(user.isPermanantlyBanned){
             return res.status(400).json({
                 message: 'Cannot Unban permanently banned user',
             });
