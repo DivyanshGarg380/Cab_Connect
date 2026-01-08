@@ -166,6 +166,7 @@ export function AdminPanel() {
     }
   }, [activeTab]);
 
+
   const displayRides = activeTab === 'active' ? sortedRides : deletedRides;
 
   return (

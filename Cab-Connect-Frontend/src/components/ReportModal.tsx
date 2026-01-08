@@ -24,6 +24,11 @@ export default function ReportModal({ ride, currentUserId, onClose }){
 
         try{
             setLoading(true);
+
+            const selectedParticipant = ride.participants.find(
+                p => p._id.toString() === reportedUserId
+            );
+
             const res = await fetch("http://localhost:5000/reports", {
                 method: "POST",
                 headers: {
@@ -32,9 +37,7 @@ export default function ReportModal({ ride, currentUserId, onClose }){
                 },
                 body: JSON.stringify({
                     rideId: ride._id,
-                    reportedUserEmail: ride.participants.find(
-                        p => p._id === reportedUserId
-                    )?.email,
+                    reportedUserEmail: selectedParticipant?.email,
                     description,
                 }),
             });
@@ -47,7 +50,7 @@ export default function ReportModal({ ride, currentUserId, onClose }){
         }catch(err){
             toast.error(err.message || "Failed to submit report");
         }finally{
-            setLoading(true);
+            setLoading(false);
         }
     };
 

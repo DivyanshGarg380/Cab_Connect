@@ -97,7 +97,7 @@ export const createReport = async (req, res) => {
     }catch(err){
         if(err.code === 11000){
             return res.status(409).json({
-                message: "You have already reported a user for this ride",
+                message: "You have already reported this user for this ride",
             });     
         }
         console.error("Create report error:", err);
