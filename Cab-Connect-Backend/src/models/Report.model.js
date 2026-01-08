@@ -28,7 +28,7 @@ const reportSchema = new mongoose.Schema({
     description: {
         type: String,
         required: true,
-        minLength: 30,
+        maxLength: 30,
         trim: true,
     },
     status: {

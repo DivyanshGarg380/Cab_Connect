@@ -18,9 +18,9 @@ export const createReport = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
-        if(description.length < 30){
+        if(description.length > 30){
             return res.status(400).json({
-                message: "Description must be atleast 30 characters",
+                message: "Description must be only 30 characters",
             });
         }
 

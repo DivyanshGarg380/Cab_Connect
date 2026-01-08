@@ -9,8 +9,13 @@ export default function ReportModal({ ride, currentUserId, onClose }){
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
-        if(!reportedUserId  || description.length < 30){
-            toast.error("Fill all fields (min 30 chars description)");
+        if(!reportedUserId || description.length === 0){
+            toast.error("Fill all fields plz");
+            return;
+        }
+
+        if(description.length > 30){
+            toast.error("Message can be only 30 characters long");
             return;
         }
 
