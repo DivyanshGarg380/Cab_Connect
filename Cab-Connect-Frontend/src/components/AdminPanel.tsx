@@ -54,6 +54,7 @@ export function AdminPanel() {
 
   const [reports, setReports] = useState<any[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
 
   const [selectedRideId, setSelectedRideId] = useState<string | null>(null);
 
@@ -122,6 +123,42 @@ export function AdminPanel() {
       setReportsLoading(false);
     }
   }
+
+  const handleReportAction = async (action) => {
+    if (!selectedReport) return;
+
+    const token = localStorage.getItem("accessToken");
+
+    const res = await fetch(
+      `http://localhost:5000/admin/reports/${selectedReport._id}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action,
+          adminNote:
+            action === "ban"
+              ? "User banned based on report"
+              : "Report dismissed by admin",
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      toast.error("Failed to take action on report");
+      return;
+    }
+
+    toast.success(
+      action === "ban" ? "User banned successfully" : "Report dismissed"
+    );
+
+    setSelectedReport(null);
+    fetchReports();
+  };
 
   useEffect(() => {
     if (activeTab === "reports") {
@@ -285,14 +322,33 @@ export function AdminPanel() {
                               {report.status.replace("_", " ")}
                             </Badge>
                           </TableCell>
-
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                            >
-                              View
-                            </Button>
+                            {report.reportedUser?.isPermanantlyBanned ? (
+                              <Badge className="bg-destructive/20 text-destructive border-destructive/30">
+                                Permanently Banned
+                              </Badge>
+                            ) : report.status === "action_taken" ? (
+                              <div className="flex flex-col items-end gap-1">
+                                <Badge className="bg-warning/20 text-warning border-warning/30">
+                                  Temporarily Banned
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {3 - report.reportedUser.banCount} bans left
+                                </span>
+                              </div>
+                            ) : report.status === "dismissed" ? (
+                              <Badge variant="outline" className="text-muted-foreground">
+                                Dismissed
+                              </Badge>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedReport(report)}
+                              >
+                                View
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
@@ -468,6 +524,42 @@ export function AdminPanel() {
             </Table>
           </div>
         </div>
+        <Dialog
+          open={!!selectedReport}
+          onOpenChange={() => setSelectedReport(null)}
+        >
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Report Details</DialogTitle>
+            </DialogHeader>
+
+            {selectedReport && (
+              <div className="space-y-3 text-sm">
+                <p><b>Reporter:</b> {selectedReport.reporter.email}</p>
+                <p><b>Reported User:</b> {selectedReport.reportedUser.email}</p>
+                <p><b>Ride Date:</b> {selectedReport.rideDate}</p>
+                <p><b>Destination:</b> {selectedReport.destination}</p>
+                <p><b>Description:</b> {selectedReport.description}</p>
+
+                <div className="pt-4 flex gap-2">
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleReportAction("ban")}
+                  >
+                    Ban User
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => handleReportAction("dismiss")}
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
