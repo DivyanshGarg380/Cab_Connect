@@ -5,7 +5,7 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features 
 
 ### 👤 Authentication & Security
 - College email–restricted OTP login
