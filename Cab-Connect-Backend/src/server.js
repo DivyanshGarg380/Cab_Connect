@@ -6,8 +6,7 @@ import { connectDB } from './config/db.js';
 import { Server } from 'socket.io';
 import http from 'http';
 import { initChatSocket } from './sockets/chat.socket.js';
-import { expireOldRides } from './jobs/expireRides.job.js';
-import { deleteExpiredRides } from './jobs/deleteExpiredRides.job.js';
+import { startCronJobs } from "./jobs/cron.job.js";
 
 const PORT = process.env.PORT || 5000;
 
@@ -33,8 +32,7 @@ async function startServer() {
     await connectDB(); 
     console.log("MongoDB connected");
 
-    setInterval(expireOldRides, 5 * 60 * 1000);
-    setInterval(deleteExpiredRides, 30 * 60 * 1000);
+    startCronJobs();
 
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
