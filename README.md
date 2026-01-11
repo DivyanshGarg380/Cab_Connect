@@ -5,7 +5,7 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features 
 
 ### 👤 Authentication & Security
 - College email–restricted OTP login
@@ -72,22 +72,6 @@ Express.js Backend
 MongoDB Atlas
 ```
 ---
-
-## 🛠 Tech Stack
-
-### Frontend
-- Typescript
-- Tailwind CSS
-- Context API
-- Fetch
-- Bun
-
-### Backend
-- Node.js
-- Express.js
-- MongoDB (Mongoose ODM)
-- JWT Authentication
-- Cron Jobs for cleanup
 
 ---
 
@@ -180,40 +164,12 @@ RBAC is enforced using centralized middleware.
 - bcrypt
 - express-rate-limit
 
-**Frontend**
-- React (planned / integrated separately)
-
+### Frontend
+- Typescript
+- Tailwind CSS
+- Context API
+- Bun
 ---
-
-## 📂 Project Structure
-```bash
-src/
-├── app.js
-├── server.js
-├── routes/
-│ ├── auth.routes.js
-│ ├── ride.routes.js
-│ ├── admin.route.js
-│ ├── notification.route.js
-├── models/
-│ ├── User.model.js
-│ ├── Ride.model.js
-│ ├── Message.model.js
-│ ├── Notification.model.js
-│ ├── Otp.model.js
-├── middleware/
-│ ├── auth.middleware.js
-│ ├── admin.middleware.js
-│ ├── ban.middleware.js
-│ ├── rateLimit.middleware.js
-├── sockets/
-│ └── chat.socket.js
-├── jobs/
-│ └── deleteExpiredRides.job.js
-├── utils/
-│ ├── generateOtp.js
-│ └── validate.js
-```
 
 ## 🚀 Local Setup
 
