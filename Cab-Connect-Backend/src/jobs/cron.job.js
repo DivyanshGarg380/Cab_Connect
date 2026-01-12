@@ -13,7 +13,7 @@ export const startCronJobs = () => {
     }
   });
 
-  cron.schedule("*/30 * * * *", async () => {
+  cron.schedule("*/5 * * * *", async () => {
     try {
       console.log("[CRON] Running deleteExpiredRides...");
       await deleteExpiredRides();
