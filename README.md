@@ -52,8 +52,8 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 - Context-aware validation (only ride participants can report)
 - Admin review pipeline with report statuses
 
-⚡ Redis Integration (Performance & Scalability)
-Redis is used for:
+### ⚡ Redis Integration (Performance & Scalability)   
+  Redis is used for:
 - OTP storage with TTL (5 min expiry)
 - OTP cooldown tracking + retry attempts
 - Caching heavy ride APIs (ride list / ride details / ride chat messages)
