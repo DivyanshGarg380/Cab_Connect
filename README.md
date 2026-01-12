@@ -52,6 +52,14 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 - Context-aware validation (only ride participants can report)
 - Admin review pipeline with report statuses
 
+⚡ Redis Integration (Performance & Scalability)
+Redis is used for:
+- OTP storage with TTL (5 min expiry)
+- OTP cooldown tracking + retry attempts
+- Caching heavy ride APIs (ride list / ride details / ride chat messages)
+- Cache invalidation on ride updates (create/join/leave/delete)
+
+
 ---
 
 ## 🏗️ System Architecture
@@ -70,6 +78,7 @@ Express.js Backend
 └── Socket.IO (Chat + Realtime Events)
 |
 MongoDB Atlas
+Redis (OTP + Cache)
 ```
 ---
 
@@ -163,6 +172,7 @@ RBAC is enforced using centralized middleware.
 - JWT
 - bcrypt
 - express-rate-limit
+- Redis (OTP + caching)
 
 ### Frontend
 - Typescript
@@ -188,10 +198,23 @@ npm install
 cd Cab_Connect/Cab-Connect-Frontend
 npm install
 ```
+
+
 ### Create ```.env``` file:
 ```
 Input your values :)
-Working on Test Keys to Provide with Rate Limits 
+Working on Test Keys to Provide with Rate Limits
+```
+
+## Docker and Redis Setup
+```bash
+Redis Setup (Docker)
+docker run -d --name redis -p 6379:6379 redis
+```
+### Test Redis
+```bash
+docker exec -it redis redis-cli ping
+# Expected: PONG
 ```
 ### Run: 
 ```
