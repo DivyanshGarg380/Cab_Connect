@@ -1,24 +1,38 @@
 import redisClient from "../config/redis.js";
 
 export const cache = (keyBuilder, ttl = 60) => {
-    return async (req, resizeBy, next) => {
-        try{
-            const key = typeof keyBuilder === "function" ? keyBuilder(req) : keyBuilder;
-            const cached = await redisClient.get(key);
-            if(cached) {
-                return res.status(200).json(JSON.parse(cached));
-            }
+  return async (req, res, next) => {
+    try {
+      if (!redisClient.isOpen) return next();
 
-            const originalJson = res.json.bind(res);
-            res.json = async (body) => {
-                await redisClient.setEx(key, ttl, JSON.stringify(body));
-                return originalJson(body);
-            };
+      const key = typeof keyBuilder === "function" ? keyBuilder(req) : keyBuilder;
 
-            next();
-        }catch(err){
-            console.log("Redis Middleware Error");
-            next(); // if redis fails -> API stills works
+      const cached = await redisClient.get(key);
+
+      if (cached) {
+        try {
+          return res.status(200).json(JSON.parse(cached));
+        } catch (e) {
+          await redisClient.del(key);
         }
+      }
+
+      const originalJson = res.json.bind(res);
+      res.json = async (body) => {
+        try {
+          if (res.statusCode >= 400) return originalJson(body);
+
+          await redisClient.setEx(key, ttl, JSON.stringify(body));
+        } catch (e) {
+          console.log("Redis cache set error:", e.message);
+        }
+        return originalJson(body);
+      };
+
+      next();
+    } catch (err) {
+      console.log("Redis Middleware Error:", err?.message || err);
+      return next();
     }
-}
+  };
+};

@@ -2,7 +2,8 @@ import redisClient from "../config/redis.js";
 
 export const invalidateRideCache = async (rideId) => {
   try {
-    // all rides list cache
+    if (!redisClient.isOpen) return;
+
     await redisClient.del("rides:all");
 
     if (rideId) {
@@ -11,5 +12,14 @@ export const invalidateRideCache = async (rideId) => {
     }
   } catch (err) {
     console.log("Redis cache invalidate error:", err.message);
+  }
+};
+
+export const invalidateRideMessagesCache = async (rideId) => {
+  try {
+    if (!redisClient.isOpen) return;
+    await redisClient.del(`rides:${rideId}:messages`);
+  } catch (err) {
+    console.log("Redis message cache invalidate error:", err.message);
   }
 };

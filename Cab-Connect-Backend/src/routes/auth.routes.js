@@ -69,7 +69,7 @@ router.post('/verify-otp', async (req, res) => {
       });
     }
 
-    const isValid = await bcrypt.compare(String(otp), otpEntry.otpHash);
+    const isValid = await bcrypt.compare(String(otp), otpHash);
 
     if (!isValid) {
       const attempts = await incrementOtpAttempts(email);
