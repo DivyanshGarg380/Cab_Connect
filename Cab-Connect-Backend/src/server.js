@@ -7,6 +7,7 @@ import { Server } from 'socket.io';
 import http from 'http';
 import { initChatSocket } from './sockets/chat.socket.js';
 import { startCronJobs } from "./jobs/cron.job.js";
+import { connectRedis } from './config/redis.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -31,6 +32,8 @@ async function startServer() {
   try {
     await connectDB(); 
     console.log("MongoDB connected");
+
+    await connectRedis();
 
     startCronJobs();
 

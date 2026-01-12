@@ -9,6 +9,8 @@ import { expireOldRides } from '../jobs/expireRides.job.js';
 import Message from '../models/Message.model.js';
 import User from '../models/User.model.js';
 import Notification from "../models/Notification.model.js";
+import { cache } from "../middleware/cache.middleware.js";
+import { invalidateRideCache } from "../utils/cacheInvalidate.js";
 
 const router = express.Router();
 
@@ -85,6 +87,8 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
             status: 'open',
         });
 
+        await invalidateRideCache(ride._id.toString());
+
         io.emit("ride:updated", {
             rideId: ride._id.toString(),
             type: "create",
@@ -138,6 +142,8 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
             ride.status = 'full';
             await ride.save();
         }
+
+        await invalidateRideCache(rideId);
 
         io.to(rideId).emit("ride:updated", {
             rideId,
@@ -202,6 +208,8 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
 
         await ride.save();
 
+        await invalidateRideCache(rideId);
+
         io.to(rideId).emit("ride:updated", {
             rideId,
             type: "leave",
@@ -246,6 +254,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
         await Ride.findByIdAndDelete(rideId);
 
+        await invalidateRideCache(rideId);
+
         io.to(rideId).emit('ride-ended', {
             message: 'Ride was deleted by the creator',
         });
@@ -264,43 +274,59 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get(
+  "/:id",
+  authMiddleware,
+  cache((req) => `rides:${req.params.id}`, 20),
+  async (req, res) => {
     try {
-        const ride = await Ride.findById(req.params.id)
-            .populate('creator', 'email')
-            .populate('participants', 'email');
+      const ride = await Ride.findById(req.params.id)
+        .populate("creator", "email")
+        .populate("participants", "email");
 
-        if (!ride) {
-            return res.status(404).json({ message: 'Ride not found' });
-        }
+      if (!ride) return res.status(404).json({ message: "Ride not found" });
 
-        res.json({ ride });
+      return res.json({ ride });
     } catch (error) {
-        console.log('Fetch Ride Error:', error);
-        res.status(500).json({ message: 'Server error' });
+      console.log("Fetch Ride Error:", error);
+      return res.status(500).json({ message: "Server error" });
     }
-});
+  }
+);
 
-router.get('/', authMiddleware, async (req, res) => {
-  const rides = await Ride.find()
-    .populate('creator', 'email')
-    .populate('participants', 'email');
+router.get(
+  "/",
+  authMiddleware,
+  cache(() => `rides:all`, 10),
+  async (req, res) => {
+    const rides = await Ride.find()
+      .populate("creator", "email")
+      .populate("participants", "email");
 
-  res.json({ rides });
-});
+    return res.json({ rides });
+  }
+);
 
-router.get('/:id/messages', authMiddleware, banMiddleware , async (req, res) => {
-    try{
-        const rideId = req.params.id;
-        const messages = await Message.find({ ride: rideId })
-            .populate('sender', 'email')
-            .sort({ createdAt: 1 });
-        res.json({ messages });
-    }catch (err){
-        console.log('Fetch Messages Error: ', err);
-        res.status(500).json({ message: 'Server Error' });
+router.get(
+  "/:id/messages",
+  authMiddleware,
+  banMiddleware,
+  cache((req) => `rides:${req.params.id}:messages`, 15),
+  async (req, res) => {
+    try {
+      const rideId = req.params.id;
+
+      const messages = await Message.find({ ride: rideId })
+        .populate("sender", "email")
+        .sort({ createdAt: 1 });
+
+      return res.json({ messages });
+    } catch (err) {
+      console.log("Fetch Messages Error: ", err);
+      return res.status(500).json({ message: "Server Error" });
     }
-});
+  }
+);
 
 router.post('/:id/messages', authMiddleware, banMiddleware, async (req, res) => {
     try{
@@ -322,6 +348,8 @@ router.post('/:id/messages', authMiddleware, banMiddleware, async (req, res) => 
         });
 
         const populatedMessage = await message.populate('sender', 'email');
+
+        await invalidateRideCache(rideId);
 
         io.to(rideId).emit('new-message', populatedMessage);
         res.status(201).json({ message: populatedMessage });

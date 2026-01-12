@@ -1,12 +1,13 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { generateOtp } from '../utils/generateOtp.js';
-import Otp from '../models/Otp.model.js';
 import User from '../models/User.model.js';
 import { generateRefreshToken, generateAccessToken } from '../utils/token.js';
 import  jwt  from 'jsonwebtoken';
 import { otpLimit } from '../middleware/rateLimit.middleware.js';
-import authMiddleware from "../middleware/auth.middleware.js"
+import authMiddleware from "../middleware/auth.middleware.js";
+import { saveOtp, getOtpHash, getCooldownLeft, incrementOtpAttempts, clearOtp } from "../services/otpRedis.service.js";
+
 
 const router = express.Router();
 
@@ -25,28 +26,18 @@ router.post('/request-otp', otpLimit ,  async (req, res) => {
             return res.status(403).json({ message: 'College email required' });
         }
         // prevent OTP spam (cooldown)
-        const existingOtp = await Otp.findOne({
-            email,
-            expiresAt: { $gt: new Date() },
-        });
-        if(existingOtp) {
-            const timeLeft = Math.ceil((existingOtp.expiresAt - new Date()) / 1000);
-            return res.status(429).json({ message: `Please wait ${timeLeft} seconds before requesting a new OTP` });
+        const cooldownLeft = await getCooldownLeft(email);
+        if (cooldownLeft > 0) {
+          return res.status(429).json({
+            message: `Please wait ${cooldownLeft} seconds before requesting a new OTP`,
+          });
         }
+
         const otpCode = generateOtp();
         const hashedOtp = await bcrypt.hash(otpCode, 10);
-        await Otp.create({
-            email,
-            otpHash: hashedOtp,
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes expiry
-        });
 
-        /*
-        // TEMP: replace with email service later
-        if (process.env.NODE_ENV === 'development') {
-        console.log(`OTP for ${email}: ${otp}`);
-        }
-        */
+        await saveOtp(email, hashedOtp);
+
         console.log(`OTP for ${email}: ${otpCode}`);
 
         res.json({ message: 'OTP sent successfully' });
@@ -69,35 +60,31 @@ router.post('/verify-otp', async (req, res) => {
 
     email = email.trim().toLowerCase();
 
-    const otpEntry = await Otp.findOne({
-      email,
-      expiresAt: { $gt: new Date() },
-    });
+    const otpHash = await getOtpHash(email);
 
-    if (!otpEntry) {
+    if (!otpHash) {
       return res.status(400).json({
-        message: 'Invalid or expired OTP',
-        code: 'OTP_EXPIRED',
+        message: "Invalid or expired OTP",
+        code: "OTP_EXPIRED",
       });
     }
 
     const isValid = await bcrypt.compare(String(otp), otpEntry.otpHash);
 
     if (!isValid) {
-      otpEntry.attempts += 1;
-      await otpEntry.save();
+      const attempts = await incrementOtpAttempts(email);
 
-      if (otpEntry.attempts >= 3) {
-        await Otp.deleteOne({ _id: otpEntry._id });
+      if (attempts >= 3) {
+        await clearOtp(email);
         return res.status(403).json({
           message:
-            'OTP expired due to too many incorrect attempts. Please request a new OTP.',
-          code: 'OTP_ATTEMPTS_EXCEEDED',
+            "OTP expired due to too many incorrect attempts. Please request a new OTP.",
+          code: "OTP_ATTEMPTS_EXCEEDED",
         });
       }
 
       return res.status(401).json({
-        message: `Invalid OTP. You have ${3 - otpEntry.attempts} attempt(s) left.`,
+        message: `Invalid OTP. You have ${3 - attempts} attempt(s) left.`,
       });
     }
 
@@ -117,7 +104,7 @@ router.post('/verify-otp', async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    await Otp.deleteOne({ _id: otpEntry._id });
+    await clearOtp(email);
 
     return res.json({
       message: 'OTP verified successfully',
