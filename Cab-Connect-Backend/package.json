@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "test": "echo \"No tests yet\" && exit 0",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -28,6 +30,11 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "@eslint/js": "^9.39.2",
+    "eslint": "^9.39.2",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^17.0.0",
+    "nodemon": "^3.1.11",
+    "typescript-eslint": "^8.53.0"
   }
 }
