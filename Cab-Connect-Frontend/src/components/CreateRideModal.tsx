@@ -6,7 +6,7 @@ import { Calendar as CalendarIcon, Clock, Plane, Plus, MapPin, ChevronDown, Plan
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/textarea'; 
 
 export function CreateRideModal() {
   const [open, setOpen] = useState(false);
