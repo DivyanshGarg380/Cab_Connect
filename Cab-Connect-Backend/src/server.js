@@ -43,8 +43,12 @@ async function startServer() {
 
   } catch (err) {
     console.error("Failed to start server:", err);
-    process.exit(1);
+    if (process.env.NODE_ENV !== "test") process.exit(1);
+    throw err;
   }
 }
 
-startServer();
+if (process.env.NODE_ENV !== "test") {
+  startServer();
+}
+
