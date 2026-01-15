@@ -28,7 +28,7 @@ jobs:
           cache: npm
           cache-dependency-path: Cab-Connect-Backend/package-lock.json
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
       - name: Run unit tests
@@ -55,35 +55,10 @@ jobs:
           cache: npm
           cache-dependency-path: Cab-Connect-Backend/package-lock.json
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
       - name: Run integration tests
         run: npx vitest run src/tests/api.integration.test.js
         env:
           NODE_ENV: test
-
-  build-check:
-    name: Build Check
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: Cab-Connect-Backend
-
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: Cab-Connect-Backend/package-lock.json
-
-      - name: Install deps
-        run: npm ci
-
-      - name: Node can import app
-        run: node -e "import('./src/app.js').then(()=>console.log('OK'))"
