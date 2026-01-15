@@ -30,7 +30,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm test
+      - name: Run basic tests
+        run: npx vitest run src/tests/basic.test.js
         env:
-           NODE_ENV: test
+            NODE_ENV: test
+
+      - name: Run rules tests
+        run: npx vitest run src/tests/rules.test.js
+        env:  
+            NODE_ENV: test
+
+      - name: Run integration tests
+        run: npx vitest run src/tests/api.integration.test.js
+        env:
+            NODE_ENV: test
+
