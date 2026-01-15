@@ -1,0 +1,13 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/Cab-Connect-Backend"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/Cab-Connect-Frontend"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
