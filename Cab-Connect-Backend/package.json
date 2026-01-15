@@ -8,8 +8,7 @@
     "start": "node src/server.js",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "echo \"No tests yet\" && exit 0"
-    
+    "test": "vitest run"
   },
   "keywords": [],
   "author": "",
