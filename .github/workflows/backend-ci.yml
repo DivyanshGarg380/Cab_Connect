@@ -9,7 +9,8 @@ on:
       - "Cab-Connect-Backend/**"
 
 jobs:
-  backend-ci:
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
 
     defaults:
@@ -27,21 +28,62 @@ jobs:
           cache: npm
           cache-dependency-path: Cab-Connect-Backend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install deps
         run: npm ci
 
-      - name: Run basic tests
-        run: npx vitest run src/tests/basic.test.js
+      - name: Run unit tests
+        run: npx vitest run src/tests/basic.test.js src/tests/rules.test.js
         env:
-            NODE_ENV: test
+          NODE_ENV: test
 
-      - name: Run rules tests
-        run: npx vitest run src/tests/rules.test.js
-        env:  
-            NODE_ENV: test
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Cab-Connect-Backend
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Cab-Connect-Backend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
 
       - name: Run integration tests
         run: npx vitest run src/tests/api.integration.test.js
         env:
-            NODE_ENV: test
+          NODE_ENV: test
 
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: Cab-Connect-Backend
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Cab-Connect-Backend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Node can import app
+        run: node -e "import('./src/app.js').then(()=>console.log('OK'))"
