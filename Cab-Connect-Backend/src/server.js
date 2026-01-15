@@ -37,6 +37,8 @@ async function startServer() {
 
     startCronJobs();
 
+    console.log("Testing");
+
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
