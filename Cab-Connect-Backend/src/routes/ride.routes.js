@@ -462,4 +462,61 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
     }
 });
 
+router.get("/suggestions", authMiddleware, 
+    cache((req) => {
+        const { destination, departureTime } = req.query;
+        return `rides:suggestions:${req.userId}:${destination}:${departureTime}`;
+    }, 20),
+    async(req, res) => {
+    try{
+        const { destination, departureTime } = req.query;
+
+        if(!destination || !["airport", "campus"].includes(destination)){
+            return res.status(400).json({ message: "Invalid Destination" });
+        }
+
+        const targetTime = new Date(departureTime);
+        if(isNaN(targetTime.getTime())){
+            return res.status(400).json({ message: "Invalid DepartureTime" });
+        }
+
+        const WINDOW_MINUTES = 90;
+        const fromTime = new Date(targetTime.getTime() - WINDOW_MINUTES * 60 * 1000);
+        const toTime = new Date(targetTime.getTime() + WINDOW_MINUTES * 60 * 1000);
+
+        const now = new Date();
+        const userId = new mongo.ObjectId(req.userId);
+
+        // aggregate = fast + gives scoring
+        const suggestions = await Ride.aggregate([
+            {
+                $match: {
+                    destination,
+                    status: "open",
+                    departureTime: { $gte: now, $gte: fromTime, $lte: toTime },
+                    creator: { $ne: userId },
+                    participants: { $ne: userId },
+                },
+            },
+            {
+                $addFields: {
+                    seatsAvailable: { $subtract : [4, { $size: "$participants" }] },
+                    timeDiff: { $abs: { $subtract: ["$departureTime", targetTime]}},
+                },
+            },
+            { $sort: { timeDiff: 1, seatsAvailable: -1 }},
+            { $limit: 10 },
+        ]);
+
+        return res.json({
+            message: "Ride suggestions fetched",
+            suggestions,
+        });
+    } catch( err){
+        console.log("Ride Suggestions Error:", error);
+        return res.status(500).json({ message: "Server Error" });
+    }
+})
+
+
 export default router;

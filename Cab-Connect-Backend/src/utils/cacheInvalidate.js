@@ -10,6 +10,12 @@ export const invalidateRideCache = async (rideId) => {
       await redisClient.del(`rides:${rideId}`);
       await redisClient.del(`rides:${rideId}:messages`);
     }
+
+    const suggestionKeys = await redisClient.keys("rides:suggestions:*");
+    if(suggestionKeys.length){
+      await redisClient.del(suggestionKeys);
+    }
+
   } catch (err) {
     console.log("Redis cache invalidate error:", err.message);
   }

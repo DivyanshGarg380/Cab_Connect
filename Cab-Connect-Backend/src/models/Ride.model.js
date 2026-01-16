@@ -46,8 +46,11 @@ rideSchema.pre("save", function (next) {
     if (this.participants.length > 4) {
         throw new Error(new Error("Maximum 4 participants allowed per ride"));
     }
-    
 });
+
+rideSchema.index({ destination: 1, departureTime: 1, status: 1 });
+rideSchema.index({ creator: 1, status: 1 });
+rideSchema.index({ participants: 1, status: 1 });
 
 export default mongoose.models.Ride ||
   mongoose.model('Ride', rideSchema);
