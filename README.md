@@ -261,6 +261,14 @@ npm run dev
   - Expired token
 - Ensure users cannot access resources they do not own
 
+## 📚 API Documentation (Swagger)
+
+This backend provides interactive API documentation using **Swagger UI**.
+
+### Start Server
+```bash
+npm install
+node src/server.js
 
 ## 👨‍💻 Author
 
