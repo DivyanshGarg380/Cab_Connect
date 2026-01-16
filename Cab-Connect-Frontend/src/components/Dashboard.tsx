@@ -28,6 +28,10 @@ export function Dashboard() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
 
+  const suggestionIds = useMemo(() => {
+    return new Set(suggestions.map((r) => r._id));
+  }, [suggestions]);
+
   // searching part
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -113,6 +117,37 @@ export function Dashboard() {
       return isMine && isActive;
     });
   }, [rides, user]);
+
+  const fetchSuggestions = async () => {
+    if (mode !== "join") return;
+    if (!joinDestination || !joinDepartureTime) return;
+
+    try {
+      setSuggestionsLoading(true);
+      const token = localStorage.getItem("accessToken");
+
+      const url = `http://localhost:5000/rides/suggestions?destination=${joinDestination}&departureTime=${encodeURIComponent(
+        joinDepartureTime
+      )}`;
+
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      setSuggestions(data?.suggestions || []);
+    } catch (err) {
+      console.log("Suggestion fetch error:", err);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mode === "join") {
+      fetchSuggestions();
+    }
+  }, [rides]);
 
   useEffect(() => {
     const fetchNotification = async () => {
@@ -262,7 +297,7 @@ export function Dashboard() {
               <EmptyState message="No rides match your search." />
             ) : (
               <AnimatePresence>
-                {searchedRides.filter(r => r.creator && r.participants).map(ride => (
+                {searchedRides.filter(r => r.creator && r.participants).filter(r => !suggestionIds.has(r._id)).map(ride => (
                   <motion.div
                     key={ride._id}
                     layout
