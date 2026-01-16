@@ -48,10 +48,6 @@ app.use(cookieParser());
  */
 
 
-app.get("/", (req, res) => {
-  res.send("API Running");
-});
-
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/users", userRoutes);
