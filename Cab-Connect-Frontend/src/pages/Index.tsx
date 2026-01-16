@@ -1,6 +1,8 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { LoginPage } from '@/components/LoginPage';
 import { Dashboard } from '@/components/Dashboard';
+import ChooseAction from "./chooseAction";
+
 
 const Index = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -13,7 +15,7 @@ const Index = () => {
     );
   }
 
-  return isAuthenticated ? <Dashboard /> : <LoginPage />;
+  return isAuthenticated ? <ChooseAction /> : <LoginPage />;
 };
 
 export default Index;

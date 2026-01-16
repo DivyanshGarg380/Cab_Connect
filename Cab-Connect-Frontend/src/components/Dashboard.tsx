@@ -10,6 +10,7 @@ import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { searchPanel } from "@/utils/searchPanel";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSearchParams } from 'react-router-dom';
 
 
 export function Dashboard() {
@@ -18,11 +19,52 @@ export function Dashboard() {
   const [activeTab, setActiveTab] = useState('all');
   const [notification, setNotification] = useState<any>(null);
 
+  const [searchParams] = useSearchParams();
+
+  const mode = searchParams.get("mode");
+  const joinDestination = searchParams.get("destination");
+  const joinDepartureTime = searchParams.get("departureTime");
+
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+
   // searching part
   const [searchQuery, setSearchQuery] = useState('');
 
   const { user }  = useAuth();
   const now = new Date();
+
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (mode !== "join") return;
+      if (!joinDestination || !joinDepartureTime) return;
+
+      try {
+        setSuggestionsLoading(true);
+        const token = localStorage.getItem("accessToken");
+
+        const url = `http://localhost:5000/rides/suggestions?destination=${joinDestination}&departureTime=${encodeURIComponent(
+          joinDepartureTime
+        )}`;
+
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+
+        setSuggestions(data?.suggestions || []);
+      } catch (err) {
+        console.log("Suggestion fetch error:", err);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    };
+
+    fetchSuggestions();
+  }, [mode, joinDestination, joinDepartureTime]);
 
   const sortedRides = useMemo(() => {
     return [...rides]
@@ -34,7 +76,6 @@ export function Dashboard() {
         return new Date(a.date).getTime() - new Date(b.date).getTime();
       });
   }, [rides]);
-
 
   const activeRides = useMemo(() => {
     return sortedRides.filter((r) => {
@@ -77,7 +118,7 @@ export function Dashboard() {
     const fetchNotification = async () => {
       const res = await fetch('http://localhost:5000/notifications', {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
       });
 
@@ -185,6 +226,38 @@ export function Dashboard() {
           </TabsList>
 
           <TabsContent value="all" className="space-y-4">
+            {/* RECOMMENDED RIDES */}
+            {mode === "join" && (
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                  Recommended Rides
+                </h2>
+
+                {suggestionsLoading ? (
+                  <p className="text-gray-600">Finding best rides...</p>
+                ) : suggestions.length === 0 ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-gray-800 font-medium">
+                      No matching rides found
+                    </p>
+                    <p className="text-gray-600 text-sm mt-1">
+                      Try a different time window or create a new ride.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {suggestions.map((ride) => (
+                      <div
+                        key={ride._id}
+                        className="border border-teal-200 bg-teal-50 rounded-lg p-3"
+                      >
+                        <RideCard ride={ride} onOpenChat={setActiveChatRide} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             {searchedRides.length === 0 ? (
               <EmptyState message="No rides match your search." />
             ) : (

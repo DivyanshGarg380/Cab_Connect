@@ -92,7 +92,7 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
             rideId: ride._id.toString()
         },{
             delay: Math.max(delay, 0),
-            jobId: `ride-expire:${ride._id.toString()}`, // duplicates prvented
+            jobId: `ride-expire-${ride._id.toString()}`, // duplicates prvented
             removeOnComplete: true,
             removeOnFail: 50,
         });
@@ -132,6 +132,29 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
         
         const rideId = req.params.id;
         const userId = new mongo.ObjectId(req.userId);
+
+
+        // Edge case 3: "User ( Not creator )" cant join more than 1 rides going to the same Destination
+        const rideToJoin = await Ride.findById(rideId);
+        if(!rideToJoin){
+            return res.status(404).json({ message: "Ride not found" });
+        }
+
+        const conflictingRide = await Ride.findOne({
+            _id: { $ne: rideId },
+            destination: rideToJoin.destination,
+            status: { $in: ["open", "full"] },
+            $or: [
+                { creator: userId },
+                { participants: userId },
+            ],
+        });
+
+        if(conflictingRide){
+            return res.status(400).json({
+                message: `You are already part of another active ride to ${rideToJoin.destination}. Leave it first.`,
+            })
+        }
 
         const ride = await Ride.findOneAndUpdate(
             {
@@ -284,77 +307,85 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-router.get("/suggestions", authMiddleware, 
-    cache((req) => {
-        const { destination, departureTime , window} = req.query;
-        return `rides:suggestions:${req.userId}:${destination}:${departureTime}`;
-    }, 20),
-    async(req, res) => {
-        try{
-            const { destination, departureTime } = req.query;
+router.get(
+  "/suggestions",
+  authMiddleware,
+  cache((req) => {
+    const { destination, departureTime, window } = req.query;
+    return `rides:suggestions:${req.userId}:${destination}:${departureTime}:${window || 15}`;
+  }, 20),
+  async (req, res) => {
+    try {
+      const { destination, departureTime } = req.query;
 
-            if(!destination || !["airport", "campus"].includes(destination)){
-                return res.status(400).json({ message: "Invalid Destination" });
-            }
+      if (!destination || !["airport", "campus"].includes(destination)) {
+        return res.status(400).json({ message: "Invalid destination" });
+      }
 
-            const targetTime = new Date(departureTime);
-            if(isNaN(targetTime.getTime())){
-                return res.status(400).json({ message: "Invalid DepartureTime" });
-            }
+      if (!departureTime) {
+        return res.status(400).json({ message: "Missing departureTime" });
+      }
 
-            const window = Number(req.query.window || 90);
-            const WINDOW_MINUTES = Math.min(Math.max(window, 15), 240); 
-            const fromTime = new Date(targetTime.getTime() - WINDOW_MINUTES * 60 * 1000);
-            const toTime = new Date(targetTime.getTime() + WINDOW_MINUTES * 60 * 1000);
+      const targetTime = new Date(departureTime);
+      if (isNaN(targetTime.getTime())) {
+        return res.status(400).json({ message: "Invalid departureTime" });
+      }
 
-            const BUFFER_MINUTES = 15;
-            const now = new Date(Date.now() + BUFFER_MINUTES * 60 * 1000);
-            const userId = new mongo.ObjectId(req.userId);
+      const window = Number(req.query.window || 15);
+      const WINDOW_MINUTES = Math.min(Math.max(window, 5), 60);
 
-            // aggregate = fast + gives scoring
-            const suggestions = await Ride.aggregate([
-                {
-                    $match: {
-                        destination,
-                        status: "open",
-                        departureTime: { $gte: now, $gte: fromTime, $lte: toTime },
-                        creator: { $ne: userId },
-                        participants: { $ne: userId },
-                    },
-                },
-                {
-                    $addFields: {
-                        seatsAvailable: { $subtract : [4, { $size: "$participants" }] },
-                        timeDiff: { $abs: { $subtract: ["$departureTime", targetTime]}},
+      const fromTime = new Date(targetTime.getTime() - WINDOW_MINUTES * 60 * 1000);
+      const toTime = new Date(targetTime.getTime() + WINDOW_MINUTES * 60 * 1000);
 
-                        matchScore: {
-                            $add: [
-                                { $multiply: [{ $subtract: [4, { $size: "$participants" }] }, 10] }, 
-                                { $multiply: [{ $divide: [{ $abs: { $subtract: ["$departureTime", targetTime] } }, 60000] }, -1] }
-                            ]
-                        }
+      const userId = new mongo.ObjectId(req.userId);
 
-                    },
-                },
-                { $sort: { matchScore: -1 } },
-                { $limit: 10 },
-            ]);
+      const rawSuggestions = await Ride.aggregate([
+        {
+          $match: {
+            destination,
+            status: "open",
+            departureTime: { $gte: fromTime, $lte: toTime },
+            creator: { $ne: userId },
+            participants: { $ne: userId },
+          },
+        },
+        {
+          $addFields: {
+            seatsAvailable: { $subtract: [4, { $size: "$participants" }] },
+            timeDiff: { $abs: { $subtract: ["$departureTime", targetTime] } },
+          },
+        },
+        { $sort: { timeDiff: 1, seatsAvailable: -1 } },
+        { $limit: 10 },
+      ]);
 
-            return res.json({
-                message: "Ride suggestions fetched",
-                suggestions,
-                meta: {
-                    destination,
-                    windowMinutes: WINDOW_MINUTES,
-                    bufferMinutes: BUFFER_MINUTES,
-                    targetTime,
-                },
-            });
-        } catch(error){
-            console.log("Ride Suggestions Error:", error);
-            return res.status(500).json({ message: "Server Error" });
-        }
-});
+      const ids = rawSuggestions.map((r) => r._id);
+
+      const populated = await Ride.find({ _id: { $in: ids } })
+        .populate("creator", "email")
+        .populate("participants", "email");
+
+      // keep aggregation sorting order
+      const map = new Map(populated.map((r) => [r._id.toString(), r]));
+      const finalSuggestions = ids.map((id) => map.get(id.toString())).filter(Boolean);
+
+      return res.json({
+        message: "Ride suggestions fetched",
+        suggestions: finalSuggestions,
+        meta: {
+          destination,
+          windowMinutes: WINDOW_MINUTES,
+          targetTime,
+          fromTime,
+          toTime,
+        },
+      });
+    } catch (error) {
+      console.log("Ride Suggestions Error:", error);
+      return res.status(500).json({ message: "Server error" });
+    }
+  }
+);
 
 router.get(
   "/:id",
