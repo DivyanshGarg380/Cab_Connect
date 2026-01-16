@@ -8,6 +8,35 @@ import User from "../models/User.model.js"
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Admin
+ *   description: Admin APIs
+ */
+
+/**
+ * @swagger
+ * /admin/users:
+ *   get:
+ *     summary: Get all users (admin)
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Users list
+ */
+
+/**
+ * @swagger
+ * /admin/rides:
+ *   get:
+ *     summary: Get all rides (admin)
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Rides list
+ */
+
 /*
     Admin can view all rides
 */

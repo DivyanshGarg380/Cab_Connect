@@ -5,6 +5,42 @@ import { getAllReports, takeActionOnReport } from "../controllers/adminReport.co
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: AdminReports
+ *   description: Admin reports APIs
+ */
+
+/**
+ * @swagger
+ * /admin/reports:
+ *   get:
+ *     summary: Get all reports (admin)
+ *     tags: [AdminReports]
+ *     responses:
+ *       200:
+ *         description: Reports list
+ */
+
+/**
+ * @swagger
+ * /admin/reports/{reportId}/resolve:
+ *   post:
+ *     summary: Resolve report (admin)
+ *     tags: [AdminReports]
+ *     parameters:
+ *       - in: path
+ *         name: reportId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Resolved
+ */
+
+
 /*
   Admin inbox - view all reports
 */

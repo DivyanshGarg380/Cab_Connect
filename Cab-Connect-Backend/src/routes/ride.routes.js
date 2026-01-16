@@ -15,6 +15,77 @@ import { rideExpiryQueue } from "../queues/rideExpiry.queue.js";
 
 const router = express.Router();
 
+
+/**
+ * @swagger
+ * tags:
+ *   name: Rides
+ *   description: Ride related APIs
+ */
+
+/**
+ * @swagger
+ * /rides:
+ *   get:
+ *     summary: Get all rides
+ *     tags: [Rides]
+ *     responses:
+ *       200:
+ *         description: List of rides
+ */
+
+/**
+ * @swagger
+ * /rides/recommended:
+ *   get:
+ *     summary: Get recommended rides
+ *     tags: [Rides]
+ *     responses:
+ *       200:
+ *         description: Recommended rides
+ */
+
+/**
+ * @swagger
+ * /rides:
+ *   post:
+ *     summary: Create a new ride
+ *     tags: [Rides]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               from: { type: string }
+ *               to: { type: string }
+ *               dateTime: { type: string }
+ *               seats: { type: integer }
+ *     responses:
+ *       201:
+ *         description: Ride created
+ */
+
+/**
+ * @swagger
+ * /rides/{rideId}/join:
+ *   post:
+ *     summary: Join a ride
+ *     tags: [Rides]
+ *     parameters:
+ *       - in: path
+ *         name: rideId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Joined ride
+ *       404:
+ *         description: Ride not found
+ */
+
+
 /*
     Create Ride 
     Creator auto join so 1/4

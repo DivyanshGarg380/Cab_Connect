@@ -8,6 +8,70 @@ import { otpLimit } from '../middleware/rateLimit.middleware.js';
 import authMiddleware from "../middleware/auth.middleware.js";
 import { saveOtp, getOtpHash, getCooldownLeft, incrementOtpAttempts, clearOtp } from "../services/otpRedis.service.js";
 
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication APIs
+ */
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string }
+ *               email: { type: string }
+ *               password: { type: string }
+ *             required: [name, email, password]
+ *     responses:
+ *       201:
+ *         description: User registered
+ *       400:
+ *         description: Bad request
+ */
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string }
+ *               password: { type: string }
+ *             required: [email, password]
+ *     responses:
+ *       200:
+ *         description: Logged in
+ *       401:
+ *         description: Invalid credentials
+ */
+
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Logged out
+ */
 
 const router = express.Router();
 
