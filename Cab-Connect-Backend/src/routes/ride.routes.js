@@ -480,11 +480,13 @@ router.get("/suggestions", authMiddleware,
             return res.status(400).json({ message: "Invalid DepartureTime" });
         }
 
-        const WINDOW_MINUTES = 90;
+        const window = Number(req.query.window || 90);
+        const WINDOW_MINUTES = Math.min(Math.max(window, 15), 240); 
         const fromTime = new Date(targetTime.getTime() - WINDOW_MINUTES * 60 * 1000);
         const toTime = new Date(targetTime.getTime() + WINDOW_MINUTES * 60 * 1000);
 
-        const now = new Date();
+        const BUFFER_MINUTES = 15;
+        const now = new Date(Date.now() + BUFFER_MINUTES * 60 * 1000);
         const userId = new mongo.ObjectId(req.userId);
 
         // aggregate = fast + gives scoring
@@ -502,15 +504,29 @@ router.get("/suggestions", authMiddleware,
                 $addFields: {
                     seatsAvailable: { $subtract : [4, { $size: "$participants" }] },
                     timeDiff: { $abs: { $subtract: ["$departureTime", targetTime]}},
+
+                    matchScore: {
+                        $add: [
+                            { $multiply: [{ $subtract: [4, { $size: "$participants" }] }, 10] }, 
+                            { $multiply: [{ $divide: [{ $abs: { $subtract: ["$departureTime", targetTime] } }, 60000] }, -1] }
+                        ]
+                    }
+
                 },
             },
-            { $sort: { timeDiff: 1, seatsAvailable: -1 }},
+            { $sort: { matchScore: -1 } },
             { $limit: 10 },
         ]);
 
         return res.json({
             message: "Ride suggestions fetched",
             suggestions,
+            meta: {
+                destination,
+                windowMinutes: WINDOW_MINUTES,
+                bufferMinutes: BUFFER_MINUTES,
+                targetTime,
+            },
         });
     } catch( err){
         console.log("Ride Suggestions Error:", error);
