@@ -21,6 +21,13 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 - Ride auto-expires after travel time
 - Expired rides cleaned automatically
 
+### ⭐ Smart Ride Matchmaking (New)
+- New Join Flow: users enter destination + preferred departure time
+- Backend suggests rides in a strict window: **±15 minutes**
+- Only `open` rides suggested
+- Sorted by: **closest departure time + seats availability**
+- Suggestions cached using Redis
+
 ### 💬 Real-Time Ride Chat
 - Socket.IO powered chat per ride
 - Only ride participants can chat
@@ -58,6 +65,17 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 - OTP cooldown tracking + retry attempts
 - Caching heavy ride APIs (ride list / ride details / ride chat messages)
 - Cache invalidation on ride updates (create/join/leave/delete)
+-  Caching ride suggestions API (matchmaking)
+
+
+### 🧹 Automatic Ride Expiry (BullMQ + Redis)
+- Ride expiry handled via **BullMQ delayed jobs**
+- Each ride schedules an expiry job at creation time
+- Jobs persist in Redis (restart-safe)
+- On expiry:
+  - ride marked `expired`
+  - realtime socket updates sent
+  - caches invalidated
 
 
 ---
@@ -147,7 +165,9 @@ RBAC is enforced using centralized middleware.
 - No auto-unban
 - Still allowed:
   - Joining rides
- 
+
+>**Note:** Banned users are restricted from chatting and creating rides but can still join rides (policy decision).
+
 
 > **Note:** The moderation system uses a strike-based enforcement model where repeated violations lead to permanent bans.
 
@@ -155,9 +175,11 @@ RBAC is enforced using centralized middleware.
 
 ## 🧹 Background Jobs
 
-- Automatically deletes expired rides
-- Cleans associated messages
-- Notifies connected users in real time
+- **BullMQ worker** automatically expires rides at departure time
+- Cleans ride data (messages, caches)
+- Notifies connected users in real time via Socket.IO
+- Optional cron fallback can be kept for legacy cleanup
+
 
 ---
 
@@ -212,6 +234,7 @@ Redis Setup (Docker)
 docker run -d --name redis -p 6379:6379 redis
 ```
 ### Test Redis
+**Redis is required for OTP storage, caching, and BullMQ queues.**
 ```bash
 docker exec -it redis redis-cli ping
 # Expected: PONG
