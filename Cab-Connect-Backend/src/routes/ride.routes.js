@@ -11,6 +11,7 @@ import User from '../models/User.model.js';
 import Notification from "../models/Notification.model.js";
 import { cache } from "../middleware/cache.middleware.js";
 import { invalidateRideCache } from "../utils/cacheInvalidate.js";
+import { rideExpiryQueue } from "../queues/rideExpiry.queue.js";
 
 const router = express.Router();
 
@@ -21,7 +22,6 @@ const router = express.Router();
 
 router.post('/', authMiddleware, banMiddleware, async (req, res) => {
     try {
-        await expireOldRides();
         const { destination, departureTime } = req.body;
         const rideDate = new Date(departureTime);
         const date = rideDate.toISOString().split('T')[0];
@@ -85,6 +85,16 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
             date,
             participants: [req.userId],
             status: 'open',
+        });
+
+        const delay = new Date(ride.departureTime).getTime() - Date.now();
+        await rideExpiryQueue.add("expire-ride", {
+            rideId: ride._id.toString()
+        },{
+            delay: Math.max(delay, 0),
+            jobId: `ride-expire:${ride._id.toString()}`, // duplicates prvented
+            removeOnComplete: true,
+            removeOnFail: 50,
         });
 
         await invalidateRideCache(ride._id.toString());
@@ -274,6 +284,78 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 });
 
+router.get("/suggestions", authMiddleware, 
+    cache((req) => {
+        const { destination, departureTime , window} = req.query;
+        return `rides:suggestions:${req.userId}:${destination}:${departureTime}`;
+    }, 20),
+    async(req, res) => {
+        try{
+            const { destination, departureTime } = req.query;
+
+            if(!destination || !["airport", "campus"].includes(destination)){
+                return res.status(400).json({ message: "Invalid Destination" });
+            }
+
+            const targetTime = new Date(departureTime);
+            if(isNaN(targetTime.getTime())){
+                return res.status(400).json({ message: "Invalid DepartureTime" });
+            }
+
+            const window = Number(req.query.window || 90);
+            const WINDOW_MINUTES = Math.min(Math.max(window, 15), 240); 
+            const fromTime = new Date(targetTime.getTime() - WINDOW_MINUTES * 60 * 1000);
+            const toTime = new Date(targetTime.getTime() + WINDOW_MINUTES * 60 * 1000);
+
+            const BUFFER_MINUTES = 15;
+            const now = new Date(Date.now() + BUFFER_MINUTES * 60 * 1000);
+            const userId = new mongo.ObjectId(req.userId);
+
+            // aggregate = fast + gives scoring
+            const suggestions = await Ride.aggregate([
+                {
+                    $match: {
+                        destination,
+                        status: "open",
+                        departureTime: { $gte: now, $gte: fromTime, $lte: toTime },
+                        creator: { $ne: userId },
+                        participants: { $ne: userId },
+                    },
+                },
+                {
+                    $addFields: {
+                        seatsAvailable: { $subtract : [4, { $size: "$participants" }] },
+                        timeDiff: { $abs: { $subtract: ["$departureTime", targetTime]}},
+
+                        matchScore: {
+                            $add: [
+                                { $multiply: [{ $subtract: [4, { $size: "$participants" }] }, 10] }, 
+                                { $multiply: [{ $divide: [{ $abs: { $subtract: ["$departureTime", targetTime] } }, 60000] }, -1] }
+                            ]
+                        }
+
+                    },
+                },
+                { $sort: { matchScore: -1 } },
+                { $limit: 10 },
+            ]);
+
+            return res.json({
+                message: "Ride suggestions fetched",
+                suggestions,
+                meta: {
+                    destination,
+                    windowMinutes: WINDOW_MINUTES,
+                    bufferMinutes: BUFFER_MINUTES,
+                    targetTime,
+                },
+            });
+        } catch(error){
+            console.log("Ride Suggestions Error:", error);
+            return res.status(500).json({ message: "Server Error" });
+        }
+});
+
 router.get(
   "/:id",
   authMiddleware,
@@ -461,78 +543,6 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-
-router.get("/suggestions", authMiddleware, 
-    cache((req) => {
-        const { destination, departureTime } = req.query;
-        return `rides:suggestions:${req.userId}:${destination}:${departureTime}`;
-    }, 20),
-    async(req, res) => {
-    try{
-        const { destination, departureTime } = req.query;
-
-        if(!destination || !["airport", "campus"].includes(destination)){
-            return res.status(400).json({ message: "Invalid Destination" });
-        }
-
-        const targetTime = new Date(departureTime);
-        if(isNaN(targetTime.getTime())){
-            return res.status(400).json({ message: "Invalid DepartureTime" });
-        }
-
-        const window = Number(req.query.window || 90);
-        const WINDOW_MINUTES = Math.min(Math.max(window, 15), 240); 
-        const fromTime = new Date(targetTime.getTime() - WINDOW_MINUTES * 60 * 1000);
-        const toTime = new Date(targetTime.getTime() + WINDOW_MINUTES * 60 * 1000);
-
-        const BUFFER_MINUTES = 15;
-        const now = new Date(Date.now() + BUFFER_MINUTES * 60 * 1000);
-        const userId = new mongo.ObjectId(req.userId);
-
-        // aggregate = fast + gives scoring
-        const suggestions = await Ride.aggregate([
-            {
-                $match: {
-                    destination,
-                    status: "open",
-                    departureTime: { $gte: now, $gte: fromTime, $lte: toTime },
-                    creator: { $ne: userId },
-                    participants: { $ne: userId },
-                },
-            },
-            {
-                $addFields: {
-                    seatsAvailable: { $subtract : [4, { $size: "$participants" }] },
-                    timeDiff: { $abs: { $subtract: ["$departureTime", targetTime]}},
-
-                    matchScore: {
-                        $add: [
-                            { $multiply: [{ $subtract: [4, { $size: "$participants" }] }, 10] }, 
-                            { $multiply: [{ $divide: [{ $abs: { $subtract: ["$departureTime", targetTime] } }, 60000] }, -1] }
-                        ]
-                    }
-
-                },
-            },
-            { $sort: { matchScore: -1 } },
-            { $limit: 10 },
-        ]);
-
-        return res.json({
-            message: "Ride suggestions fetched",
-            suggestions,
-            meta: {
-                destination,
-                windowMinutes: WINDOW_MINUTES,
-                bufferMinutes: BUFFER_MINUTES,
-                targetTime,
-            },
-        });
-    } catch( err){
-        console.log("Ride Suggestions Error:", error);
-        return res.status(500).json({ message: "Server Error" });
-    }
-})
 
 
 export default router;

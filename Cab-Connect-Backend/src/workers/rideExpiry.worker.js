@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { Connection } from "../config/bullmq.connection.js";
+import { connection } from "../config/bullmq.connection.js";
 import Ride from "../models/Ride.model.js";
 import Message from "../models/Message.model.js";
 import { io } from "../server.js";
