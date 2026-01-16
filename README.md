@@ -269,7 +269,8 @@ This backend provides interactive API documentation using **Swagger UI**.
 ```bash
 npm install
 node src/server.js
-
+visit localhost:5000/docs
+```
 ## 👨‍💻 Author
 
 **Divyansh Garg**  
