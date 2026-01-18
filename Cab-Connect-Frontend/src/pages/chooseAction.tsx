@@ -45,7 +45,7 @@ export default function ChooseAction() {
             </div>
 
             <h1 className="text-4xl md:text-5xl font-extrabold mt-6 text-gray-900 tracking-tight">
-              Split rides, not chaos.
+              Find. Match. Ride.
             </h1>
 
             <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
@@ -164,17 +164,15 @@ export default function ChooseAction() {
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </form>
-
-                {/* IMPORTANT: pushes everything above up so button aligns */}
                 <div className="mt-auto" />
               </div>
             </div>
 
           </div>
           {/* Footer */}
-          <div className="text-center mt-10 text-sm text-gray-500">
-            Secure OTP login • Real-time rides • Moderated community
-          </div>
+            <div className="text-center mt-10 text-sm text-gray-500">
+              You can always go around. Hold short, reset, and roll again. ⌯✈︎
+            </div>
         </div>
       </div>
     </div>
