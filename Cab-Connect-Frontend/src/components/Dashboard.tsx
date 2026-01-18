@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRides } from '@/contexts/RideContext';
 import { Header } from './Header';
 import { CreateRideModal } from './CreateRideModal';
@@ -20,6 +20,7 @@ export function Dashboard() {
   const [notification, setNotification] = useState<any>(null);
 
   const [searchParams] = useSearchParams();
+  const hideDisabledTimerRef = useRef<number | null>(null);
 
   const mode = searchParams.get("mode");
   const joinDestination = searchParams.get("destination");
@@ -27,6 +28,8 @@ export function Dashboard() {
 
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsDisabled, setSuggestionsDisabled] = useState(false);
+  const [hideRecommendations, setHideRecommendations] = useState(false);
 
   const suggestionIds = useMemo(() => {
     return new Set(suggestions.map((r) => r._id));
@@ -39,36 +42,64 @@ export function Dashboard() {
   const now = new Date();
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (mode !== "join") return;
-      if (!joinDestination || !joinDepartureTime) return;
-
-      try {
-        setSuggestionsLoading(true);
-        const token = localStorage.getItem("accessToken");
-
-        const url = `http://localhost:5000/rides/suggestions?destination=${joinDestination}&departureTime=${encodeURIComponent(
-          joinDepartureTime
-        )}`;
-
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = await res.json();
-
-        setSuggestions(data?.suggestions || []);
-      } catch (err) {
-        console.log("Suggestion fetch error:", err);
-      } finally {
-        setSuggestionsLoading(false);
-      }
+    return () => {
+      if (hideDisabledTimerRef.current) clearTimeout(hideDisabledTimerRef.current);
     };
+  }, []);
 
+  const fetchSuggestions = async () => {
+    if (mode !== "join") return;
+    if (!joinDestination || !joinDepartureTime) return;
+
+    try {
+      setSuggestionsLoading(true);
+      const token = localStorage.getItem("accessToken");
+
+      const url = `http://localhost:5000/rides/suggestions?destination=${joinDestination}&departureTime=${encodeURIComponent(
+        joinDepartureTime
+      )}`;
+
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      setSuggestions(data?.suggestions || []);
+
+      const disabled = Boolean(data?.meta?.disabled);
+      setSuggestionsDisabled(disabled);
+
+      if (hideDisabledTimerRef.current) {
+        clearTimeout(hideDisabledTimerRef.current);
+      }
+
+      if (disabled) {
+        setHideRecommendations(false); 
+        if (hideDisabledTimerRef.current) clearTimeout(hideDisabledTimerRef.current);
+        hideDisabledTimerRef.current = window.setTimeout(() => {
+          setSuggestionsDisabled(false);
+          setHideRecommendations(true); 
+        }, 20000);
+      }else{
+        setHideRecommendations(false);
+      }
+    } catch (err) {
+      console.log("Suggestion fetch error:", err);
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchSuggestions();
   }, [mode, joinDestination, joinDepartureTime]);
+
+  useEffect(() => {
+    if (mode === "join") fetchSuggestions();
+  }, [rides]);
 
   const sortedRides = useMemo(() => {
     return [...rides]
@@ -117,37 +148,6 @@ export function Dashboard() {
       return isMine && isActive;
     });
   }, [rides, user]);
-
-  const fetchSuggestions = async () => {
-    if (mode !== "join") return;
-    if (!joinDestination || !joinDepartureTime) return;
-
-    try {
-      setSuggestionsLoading(true);
-      const token = localStorage.getItem("accessToken");
-
-      const url = `http://localhost:5000/rides/suggestions?destination=${joinDestination}&departureTime=${encodeURIComponent(
-        joinDepartureTime
-      )}`;
-
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data = await res.json();
-      setSuggestions(data?.suggestions || []);
-    } catch (err) {
-      console.log("Suggestion fetch error:", err);
-    } finally {
-      setSuggestionsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (mode === "join") {
-      fetchSuggestions();
-    }
-  }, [rides]);
 
   useEffect(() => {
     const fetchNotification = async () => {
@@ -262,19 +262,26 @@ export function Dashboard() {
 
           <TabsContent value="all" className="space-y-4">
             {/* RECOMMENDED RIDES */}
-            {mode === "join" && (
+            {mode === "join" && !hideRecommendations && (
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-2">
                   Recommended Rides
                 </h2>
 
-                {suggestionsLoading ? (
+                {suggestionsDisabled ? (
+                 <div className="rounded-2xl border border-yellow-200 bg-gradient-to-r from-yellow-50 via-amber-50 to-white p-4 shadow-sm">
+                    <p className="text-yellow-900 font-semibold">
+                      Recommendations disabled
+                    </p>
+                    <p className="text-yellow-800/80 text-sm mt-1">
+                      You’re already part of an active ride, so we’re hiding suggested rides.
+                    </p>
+                  </div>
+                ) : suggestionsLoading ? (
                   <p className="text-gray-600">Finding best rides...</p>
                 ) : suggestions.length === 0 ? (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-gray-800 font-medium">
-                      No matching rides found
-                    </p>
+                    <p className="text-gray-800 font-medium">No matching rides found</p>
                     <p className="text-gray-600 text-sm mt-1">
                       Try a different time window or create a new ride.
                     </p>
