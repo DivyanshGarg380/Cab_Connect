@@ -30,9 +30,13 @@ export const getReportChat = async(req, res) => {
       .populate("ride", "date destination departureTime");
 
     if(!report){
-      return res.status(400).json({
+      return res.status(404).json({
         message: "Report not found"
       });
+    }
+
+    if(!report.ride){
+      return res.status(404).json({ message: "Ride not found for this report" });
     }
 
     const limit = Math.min(parseInt(req.query.limit) || 100, 300);
