@@ -410,6 +410,28 @@ router.get(
 
       const userId = new mongo.ObjectId(req.userId);
 
+      const alreadyInActiveRide = await Ride.exists({
+        destination,
+        status: "open",
+        $or: [{ creator: userId }, { participants: userId }],
+      });
+
+      if (alreadyInActiveRide) {
+        return res.json({
+          message: "User already part of an open ride. Suggestions disabled.",
+          suggestions: [],
+          meta: {
+            destination,
+            windowMinutes: WINDOW_MINUTES,
+            targetTime,
+            fromTime,
+            toTime,
+            disabled: true,
+            reason: "already_in_open_ride",
+          },
+        });
+      }
+
       const rawSuggestions = await Ride.aggregate([
         {
           $match: {
@@ -417,7 +439,7 @@ router.get(
             status: "open",
             departureTime: { $gte: fromTime, $lte: toTime },
             creator: { $ne: userId },
-            participants: { $ne: userId },
+            participants: { $nin: [userId] },
           },
         },
         {
@@ -439,6 +461,7 @@ router.get(
       // keep aggregation sorting order
       const map = new Map(populated.map((r) => [r._id.toString(), r]));
       const finalSuggestions = ids.map((id) => map.get(id.toString())).filter(Boolean);
+
 
       return res.json({
         message: "Ride suggestions fetched",
