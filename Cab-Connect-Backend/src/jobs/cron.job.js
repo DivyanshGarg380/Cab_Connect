@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { expireOldRides } from "./expireRides.job.js";
 import { deleteExpiredRides } from "./deleteExpiredRides.job.js";
+import { deleteReports } from "./deleteReports.job.js";
 
 export const startCronJobs = () => {
   
@@ -19,6 +20,15 @@ export const startCronJobs = () => {
       await deleteExpiredRides();
     } catch (err) {
       console.error("[CRON] deleteExpiredRides failed:", err.message);
+    }
+  });
+
+  cron.schedule("*/5 * * * *", async () => {
+    try {
+      console.log("[CRON] Running deleteResolvedReports...");
+      await deleteReports();
+    } catch (err) {
+      console.error("[CRON] deleteResolvedReports failed:", err.message);
     }
   });
 
