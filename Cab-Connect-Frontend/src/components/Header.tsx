@@ -40,7 +40,7 @@ export function Header() {
         {/* Navigation Links */}
         <div className="flex items-center space-x-6">
           <Link
-            to="/"
+            to="/dashboard"
             className={`text-sm font-medium transition-colors ${
               location.pathname === '/'
                 ? 'text-gray-900'
