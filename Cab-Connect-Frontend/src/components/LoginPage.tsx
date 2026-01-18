@@ -24,7 +24,6 @@ export function LoginPage () {
     setOtp('');
   };
 
-
   const handleSendOtp = async () => {
     if(!email) return;
     try{

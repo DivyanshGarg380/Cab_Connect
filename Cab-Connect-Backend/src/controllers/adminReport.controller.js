@@ -1,6 +1,7 @@
 import Report from "../models/Report.model.js";
 import User from "../models/User.model.js";
 import Notification from "../models/Notification.model.js";
+import Message from "../models/Message.model.js";
 import { io } from "../server.js";
 
 export const getAllReports = async (req, res) => {
@@ -18,6 +19,44 @@ export const getAllReports = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const getReportChat = async(req, res) => {
+  try{
+    const { reportId } = req.params;
+
+    const report = await Report.findById(reportId)
+      .populate("reporter", "email")
+      .populate("reportedUser", "email")
+      .populate("ride", "date destination departureTime");
+
+    if(!report){
+      return res.status(400).json({
+        message: "Report not found"
+      });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit) || 100, 300);
+    const skip = parseInt(req.query.skip) || 0;
+
+    const messages = await Message.find({ ride: report.ride._id })
+      .populate("sender", "email role")
+      .sort({ createdAt: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      message: "Chat fetched Successfully",
+      report,
+      messages,
+    });
+
+  }catch(err){
+    console.log("getReportChat error: ", err);
+    return res.status(500).json({
+      message: "Internal server error"
+    });
+  }
+}
 
 export const takeActionOnReport = async (req, res) => {
   try{

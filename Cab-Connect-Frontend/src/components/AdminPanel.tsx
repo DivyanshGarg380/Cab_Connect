@@ -166,8 +166,37 @@ export function AdminPanel() {
     }
   }, [activeTab]);
 
+  const [chatOpen, setChatOpen] = useState(false);
+  const [reportChat, setReportChat] = useState<any[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
 
   const displayRides = activeTab === 'active' ? sortedRides : deletedRides;
+
+  const fetchReportChat = async (reportId: string) => {
+    const token = localStorage.getItem("accessToken");
+    if(!token) return;
+
+    try{
+      setChatLoading(true);
+      const res = await fetch(`http://localhost:5000/admin/reports/${reportId}/chat`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if(!res.ok){
+        toast.error("Failed to fetch chat");
+        return;
+      }
+
+      const data = await res.json();
+      setReportChat(data.messages || []);
+      setChatOpen(true);
+    }catch(err){
+      console.error(err);
+      toast.error("Error fetching chat");
+    }finally{
+      setChatLoading(false);
+    } 
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -551,12 +580,46 @@ export function AdminPanel() {
                   </Button>
 
                   <Button
+                    variant="secondary"
+                    onClick={() => fetchReportChat(selectedReport._id)}
+                  >
+                    View Chat
+                  </Button>
+
+                  <Button
                     variant="outline"
                     onClick={() => handleReportAction("dismiss")}
                   >
                     Dismiss
                   </Button>
                 </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+        <Dialog open={chatOpen} onOpenChange={setChatOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Ride Chat (Read Only)</DialogTitle>
+            </DialogHeader>
+
+            {chatLoading ? (
+              <p className="text-sm text-muted-foreground">Loading chat...</p>
+            ) : reportChat.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No messages found.</p>
+            ) : (
+              <div className="max-h-[60vh] overflow-y-auto space-y-2 border rounded-md p-3">
+                {reportChat.map((m) => (
+                  <div key={m._id} className="text-sm">
+                    <span className="font-semibold">
+                      {m.type === "system" ? "SYSTEM" : m.sender?.email || "Unknown"}:
+                    </span>{" "}
+                    <span className="text-muted-foreground">{m.text}</span>
+                    <div className="text-[11px] text-muted-foreground">
+                      {format(new Date(m.createdAt), "MMM dd, hh:mm a")}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </DialogContent>

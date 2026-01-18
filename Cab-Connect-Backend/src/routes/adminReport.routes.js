@@ -1,7 +1,7 @@
 import express from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
 import adminMiddleware from "../middleware/admin.middleware.js";
-import { getAllReports, takeActionOnReport } from "../controllers/adminReport.controller.js";
+import { getAllReports, takeActionOnReport, getReportChat} from "../controllers/adminReport.controller.js";
 
 const router = express.Router();
 
@@ -52,5 +52,7 @@ router.get("/", authMiddleware, adminMiddleware, getAllReports);
 */
 
 router.patch("/:reportId", authMiddleware, adminMiddleware, takeActionOnReport);
+router.get("/:reportId/chat", authMiddleware, adminMiddleware, getReportChat);
+
 
 export default router;
