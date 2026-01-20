@@ -255,7 +255,7 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
               </Button>
             )}
 
-            {isCreator && !isExpired && (
+            {isCreator && !isExpired && ( isLocked || ride.participants.length >= 2) && (
               <Button
                 size="sm"
                 variant="outline"
