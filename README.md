@@ -20,6 +20,11 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 - Creator auto-joins ride
 - Ride auto-expires after travel time
 - Expired rides cleaned automatically
+- Creator can **lock a ride** to prevent new users from joining (useful for luggage/comfort)
+- Ride can be locked only when it has **at least 2 participants**
+- Locked rides remain active but are **not joinable** until unlocked
+- Lock/unlock updates propagate in **real-time via Socket.IO**
+- Locking is **race-condition safe** (atomic MongoDB update)
 
 ### ⭐ Smart Ride Matchmaking (New)
 - New Join Flow: users enter destination + preferred departure time
@@ -27,6 +32,7 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 - Only `open` rides suggested
 - Sorted by: **closest departure time + seats availability**
 - Suggestions cached using Redis
+- Locked rides are **automatically excluded** from recommendations/suggestions
 
 ### 💬 Real-Time Ride Chat
 - Socket.IO powered chat per ride
@@ -66,7 +72,13 @@ It replaces messy WhatsApp groups with a **structured, secure, and moderated sys
 - Caching heavy ride APIs (ride list / ride details / ride chat messages)
 - Cache invalidation on ride updates (create/join/leave/delete)
 -  Caching ride suggestions API (matchmaking)
+-  Cache invalidation also triggers on **ride lock/unlock** to prevent stale UI state
 
+### 🔒 Ride Locking (New)
+- Ride creator can lock/unlock rides to stop further joining even if seats are available
+- Lock requires minimum 2 participants
+- Lock state displayed on ride cards + enforced in backend join logic
+- Fully synced across clients using Socket.IO events
 
 ### 🧹 Automatic Ride Expiry (BullMQ + Redis)
 - Ride expiry handled via **BullMQ delayed jobs**
