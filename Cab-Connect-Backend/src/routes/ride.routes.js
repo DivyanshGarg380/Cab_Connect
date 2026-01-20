@@ -16,7 +16,6 @@ import { cancelRideExpiryJob } from '../utils/cancelRideExpiryJob.js';
 
 const router = express.Router();
 
-
 /**
  * @swagger
  * tags:
@@ -86,7 +85,6 @@ const router = express.Router();
  *         description: Ride not found
  */
 
-
 /*
     Create Ride 
     Creator auto join so 1/4
@@ -109,6 +107,12 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
 
         if(rideDate <= new Date()) {
             return res.status(400).json({ message: 'Departure time must be in the future' });
+        }
+
+        if(rideDate >= new Date(Date.now() + 40*24*60*60*1000)){
+            return res.status(400).json({
+                message: 'Select a closer Departure Date'
+            });
         }
 
         // Edge Case 1: A user can create max 2 rides ( to airport or back to campus ).. so both rides cant have same dest
@@ -232,6 +236,7 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
             {
                 _id: rideId,
                 status: 'open',
+                isLocked: false,
                 participants: { $ne: userId },
                 $expr: { $lt: [ { $size: "$participants" }, 4 ] }
             },
@@ -240,7 +245,7 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
         );
 
         if(!ride) {
-            return res.status(400).json({ message: 'Unable to join ride. It may be full, expired, or you are already a participant.' });
+            return res.status(400).json({ message: 'Unable to join ride. It may be full, locked, expired, or you are already a participant.' });
         }
 
         if(ride.participants.length === 4 && ride.status !== 'full') {
@@ -442,6 +447,7 @@ router.get(
           $match: {
             destination,
             status: "open",
+            isLocked: false,
             departureTime: { $gte: fromTime, $lte: toTime },
             creator: { $ne: userId },
             participants: { $nin: [userId] },
@@ -677,5 +683,106 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+router.patch("/:id/lock", authMiddleware, async(req, res) => {
+    try {
+        const rideId = req.params.id;
+        const userId = new mongo.ObjectId(req.userId);
+
+        const ride = await Ride.findOneAndUpdate(
+            {
+                _id: rideId,
+                creator: userId,
+                status: { $in: ["open", "full"] },
+                isLocked: false,
+                $expr: { $gte: [{ $size:  "$participants" }, 2]},
+            },
+            {
+                $set: {
+                    isLocked: true,
+                    lockedAt: new Date(),
+                },
+            },
+            { new : true }
+        )
+        .populate("creator", "email")
+        .populate("participants", "email")
+
+        if(!ride){
+            return res.status(400).json({
+                message: "Unable to lock ride. Either ride not found, already locked, expired or participants are less than 2.",
+            });
+        }
+
+        await invalidateRideCache(rideId);
+
+        io.to(rideId.toString()).emit("ride:updated", {
+            rideId: rideId.toString(),
+            type: "lock",
+            ride,
+        });
+
+        io.emit("ride:updated", {
+            rideId: rideId.toString(),
+            type: "lock",
+            ride,
+        });
+
+        return res.json({ message: "Ride Locked Successfully ", ride });
+    }catch (err){
+        console.log("Lock Ride Error:", err);
+        return res.status(500).json({ message: "Server Error" });
+    }
+});
+
+router.patch("/:id/unlock", authMiddleware, async(req, res) => {
+    try {
+        const rideId = req.params.id;
+        const userId = mongo.ObjectId(req.userId);
+
+        const ride = await Ride.findOneAndUpdate(
+            {
+                _id: rideId,
+                creator: userId,
+                status: { $in: ["open", "full" ]},
+                isLocked: true,
+            },
+            {
+                $set: {
+                    isLocked: false,
+                    lockedAt: null,
+                },
+            },
+            { new: true }
+        )
+        .populate("creator", "email")
+        .populate("participants", "email")
+
+        if(!ride){
+            return res.status(400).json({
+                message: "Unable to unlock ride. Either not found expired or already unlocked.",
+            });
+        }
+
+        await invalidateRideCache(rideId);
+
+        io.to(rideId.toString()).emit("ride:updated", {
+            rideId: rideId.toString(),
+            type: "unlock",
+            ride,
+        });
+
+        io.emit("ride:updated", {
+            rideId: rideId.toString(),
+            typ: "unlock",
+            ride
+        });
+
+        return res.json({ message: "Ride unlocked successfully ", ride});
+    }catch(err){
+        console.log("Unlock Ride Error:", error);
+        return res.status(500).json({ message: "Server error" });
+    }
+})
 
 export default router;

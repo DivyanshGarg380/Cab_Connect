@@ -32,6 +32,14 @@ const rideSchema = new mongoose.Schema(
             enum: ["open", "full", "expired"],
             default: "open",
         },
+        isLocked: {
+            type: Boolean,
+            default: false,
+        },
+        lockedAt: {
+            type: Date,
+            default: null,
+        }
     },
     {
         timestamps: true,       

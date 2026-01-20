@@ -199,7 +199,7 @@ export function ChatPanel({ rideId, onClose }: ChatPanelProps) {
                         className="h-8"
                         onClick={() => handleKick(p._id.toString())}
                       >
-                        Remove
+                        Kick User
                       </Button>
                     )}
                   </div>
