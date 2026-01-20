@@ -7,6 +7,7 @@ import  jwt  from 'jsonwebtoken';
 import { otpLimit } from '../middleware/rateLimit.middleware.js';
 import authMiddleware from "../middleware/auth.middleware.js";
 import { saveOtp, getOtpHash, getCooldownLeft, incrementOtpAttempts, clearOtp } from "../services/otpRedis.service.js";
+import { sendOtpEmail } from "../EmailService/sendOtpEmail.js";
 
 /**
  * @swagger
@@ -101,6 +102,8 @@ router.post('/request-otp', otpLimit ,  async (req, res) => {
         const hashedOtp = await bcrypt.hash(otpCode, 10);
 
         await saveOtp(email, hashedOtp);
+
+        //await sendOtpEmail(email, otpCode);
 
         console.log(`OTP for ${email}: ${otpCode}`);
 
