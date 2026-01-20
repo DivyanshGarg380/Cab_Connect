@@ -12,6 +12,7 @@ import Notification from "../models/Notification.model.js";
 import { cache } from "../middleware/cache.middleware.js";
 import { invalidateRideCache } from "../utils/cacheInvalidate.js";
 import { rideExpiryQueue } from "../queues/rideExpiry.queue.js";
+import { cancelRideExpiryJob } from '../utils/cancelRideExpiryJob.js';
 
 const router = express.Router();
 
@@ -355,6 +356,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         if(ride.creator.toString() !== userId.toString()){
             return res.status(403).json({ message: 'Only the creator can delete this ride' });
         }
+        
+        await cancelRideExpiryJob(rideId);
 
         await Ride.findByIdAndDelete(rideId);
 
@@ -363,6 +366,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         io.to(rideId).emit('ride-ended', {
             message: 'Ride was deleted by the creator',
         });
+
+        io.in(rideId.toString()).socketsLeave(rideId.toString());
 
         io.emit("ride:updated", {
             rideId,
@@ -506,7 +511,9 @@ router.get(
   authMiddleware,
   cache(() => `rides:all`, 10),
   async (req, res) => {
-    const rides = await Ride.find()
+    const rides = await Ride.find({
+        status: { $in: ["open", "full"] },
+    })
       .populate("creator", "email")
       .populate("participants", "email");
 
@@ -609,6 +616,8 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
 
         await ride.save();
 
+        await invalidateRideCache(rideId);
+
         io.to(rideId).emit("ride:updated", {
             rideId,
             type: "kick",
@@ -668,6 +677,5 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
-
 
 export default router;

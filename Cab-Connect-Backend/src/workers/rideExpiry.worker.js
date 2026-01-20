@@ -10,20 +10,22 @@ export const rideExpiryWorker = new Worker(
     "ride-expiry",
     async (job) => {
         const { rideId } = job.data;
-        const ride = await Ride.findById(rideId);
-        if(!ride) return;
 
-        // mark expired
-        ride.status = "expired";
-        await ride.save();
+        const ride = await Ride.findOneAndUpdate(
+            { _id: rideId, status: { $ne: "expired" }},
+            { $set: { status: "expired" }},
+            { new: true }
+        );
+
+        if(!ride) return;
 
         await Message.deleteMany({ ride: rideId });
         await invalidateRideCache(rideId.toString());
 
         // notifyinf users now ( socket )
-        io.to(rideId.toString().emit("ride-ended", {
+        io.to(rideId.toString()).emit("ride-ended", {
             message: "Ride expired automatically",
-        }));
+        });
 
         io.emit("ride:updated", {
             rideId: rideId.toString(),

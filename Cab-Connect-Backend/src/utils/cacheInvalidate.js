@@ -1,5 +1,23 @@
 import redisClient from "../config/redis.js";
 
+async function delByPattern(pattern) {
+  if(!redisClient.isOpen) return;
+  let cursor = "0";
+
+  do {
+    const { cursor: nextCursor, keys } = await redisClient.scan(cursor, {
+      MATCH: pattern,
+      COUNT: 100,
+    });
+
+    cursor = nextCursor;
+
+    if(keys.length){
+      await redisClient.del(keys);
+    }
+  }while(cursor !== "0");
+}
+
 export const invalidateRideCache = async (rideId) => {
   try {
     if (!redisClient.isOpen) return;
@@ -11,10 +29,7 @@ export const invalidateRideCache = async (rideId) => {
       await redisClient.del(`rides:${rideId}:messages`);
     }
 
-    const suggestionKeys = await redisClient.keys("rides:suggestions:*");
-    if(suggestionKeys.length){
-      await redisClient.del(suggestionKeys);
-    }
+    await delByPattern("rides:suggestions:*");
 
   } catch (err) {
     console.log("Redis cache invalidate error:", err.message);

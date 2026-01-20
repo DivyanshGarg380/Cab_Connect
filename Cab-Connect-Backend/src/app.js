@@ -50,7 +50,7 @@ app.use(cookieParser());
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use("/api/users", userRoutes);
+app.use("/users", userRoutes);
 
 app.get('/', (req, res) => {
   res.send('Cab Connect Backend is running');

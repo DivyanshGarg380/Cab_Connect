@@ -397,6 +397,7 @@ export function Dashboard() {
     </div>
   );
 }
+
 function EmptyState({ message }: { message: string }) {
   return (
     <div className="card-elevated p-12 text-center">
@@ -405,7 +406,6 @@ function EmptyState({ message }: { message: string }) {
     </div>
   );
 }
-
 
 function Stat({ icon, value, label, sub }: any) {
   return (
