@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
-import { Calendar, Users, MessageCircle, Clock, MapPin } from 'lucide-react';
+import { Calendar, Users, MessageCircle, Clock, MapPin, Lock, Unlock } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { toast } from 'sonner';
 import { useRides } from '@/contexts/RideContext';
@@ -32,6 +32,9 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
 
   const isExpired = new Date(ride.departureTime) <= new Date();
   const isCreator = !!user && ride.creator._id === user.id;
+  
+  const isLocked = Boolean((ride as any).isLocked);
+
   const isParticipant =
     !!user && ride.participants.some(p => p && p._id === user.id);
 
@@ -71,6 +74,7 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
     !!user &&
     !isExpired &&
     !isCreator &&
+    !isLocked &&
     !isParticipant &&
     ride.participants.length < 4;
 
@@ -94,7 +98,6 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
     }
   };
 
-
   const handleDeleteRide = async () => {
     if (!confirm('Delete this ride permanently?')) return;
 
@@ -108,6 +111,39 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
     }
   };
 
+  const handleLockToggle = async () => {
+    if(!isCreator) return;
+
+    if(!isLocked && ride.participants.length < 2){
+      toast.error("Need atleast 2 participants to lock the ride");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("accessToken");
+      const url = isLocked
+        ? `http://localhost:5000/rides/${ride._id}/unlock`
+        : `http://localhost:5000/rides/${ride._id}/lock`;
+
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
+
+      if(!res.ok){
+        throw new Error(data?.message || "Unable to update lock state");
+      }
+
+      toast.success(isLocked ? "Ride unloacked" : "Ride locked");
+    }catch( err: any){
+      toast.error(err?.message || "Lock update failed");
+    }
+  };
+
   const [showReport, setShowReport] = useState(false);
 
   return (
@@ -118,6 +154,12 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center space-x-2 mb-1">
+              {isLocked && !isExpired && (
+                <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                  <Lock className="w-3.5 h-3.5" />
+                  Locked
+                </Badge>
+              )}
               <h3 className="text-lg font-semibold text-foreground">
                 {isExpired
                   ? 'Expired Ride'
@@ -216,6 +258,27 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
             {isCreator && !isExpired && (
               <Button
                 size="sm"
+                variant="outline"
+                onClick={handleLockToggle}
+                disabled={!isLocked && ride.participants.length < 2}
+                className="flex items-center gap-2"
+              >
+                {isLocked ? (
+                  <>
+                    <Unlock className="w-4 h-4" />
+                    Unlock
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    Lock
+                  </>
+                )}
+              </Button>
+            )}
+            {isCreator && !isExpired && (
+              <Button
+                size="sm"
                 variant="destructive"
                 onClick={handleDeleteRide}
               >
@@ -235,6 +298,12 @@ export function RideCard({ ride, onOpenChat }: RideCardProps) {
             )}
           </div>
         </div>
+        {isLocked && !isCreator && !isParticipant && !isExpired && (
+          <div className="mt-3 rounded-lg border border-muted bg-muted/30 px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            This ride is locked by the creator.
+          </div>
+        )}
       </div>
       {showReport && user && (
         <ReportModal

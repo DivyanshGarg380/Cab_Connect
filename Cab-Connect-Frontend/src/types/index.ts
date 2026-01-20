@@ -15,6 +15,8 @@ export interface Ride {
   destination: 'airport' | 'campus';
   departureTime: string;
   status: 'open' | 'full' | 'expired';
+  isLocked?: boolean;
+  lockedAt?: string | null;
 }
 export interface RidesResponse {
   rides: Ride[];

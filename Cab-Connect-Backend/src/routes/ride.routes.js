@@ -738,7 +738,7 @@ router.patch("/:id/lock", authMiddleware, async(req, res) => {
 router.patch("/:id/unlock", authMiddleware, async(req, res) => {
     try {
         const rideId = req.params.id;
-        const userId = mongo.ObjectId(req.userId);
+        const userId = new mongo.ObjectId(req.userId);
 
         const ride = await Ride.findOneAndUpdate(
             {
@@ -780,7 +780,7 @@ router.patch("/:id/unlock", authMiddleware, async(req, res) => {
 
         return res.json({ message: "Ride unlocked successfully ", ride});
     }catch(err){
-        console.log("Unlock Ride Error:", error);
+        console.log("Unlock Ride Error:", err);
         return res.status(500).json({ message: "Server error" });
     }
 })
