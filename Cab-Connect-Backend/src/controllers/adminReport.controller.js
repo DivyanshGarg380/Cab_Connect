@@ -88,20 +88,22 @@ export const takeActionOnReport = async (req, res) => {
     }
 
     // dismiss
-
     if(action == "dismiss"){
       report.status = "dismissed";
       report.adminNote = adminNote || "";
       await report.save();
 
-      await Notification.create({
+      const notif = await Notification.create({
         user: report.reporter,
         message: "Your report has been reviewed and dismissed by admin.",
+        type: "admin",
+        meta: {
+          action: "dismiss",
+          reportId: report._id.toString(),
+        },
       });
 
-      io.to(report.reporter.toString()).emit("user-notification", {
-        message: "Your report was dismissed",
-      });
+      io.to(report.reporter.toString()).emit("user-notification", notif);
 
       return res.json({
         message: "Report dismissed"
@@ -142,16 +144,17 @@ export const takeActionOnReport = async (req, res) => {
         message: "Admin took action on your report",
       });
 
-      await Notification.create({
-        user: user._id,
-        message: user.isPermanantlyBanned
-            ? "You have been permanently banned due to policy violations."
-            : "You have been termporarily banned for 7 days due to policy violations.",
+      const reporterNotif = await Notification.create({
+        user: report.reporter,
+        message: "Your report was reviewed and the reported user has been banned.",
+        type: "admin",
+        meta: {
+          action: "ban",
+          reportId: report._id.toString(),
+        },
       });
 
-      io.to(user._id.toString()).emit("user-notification", {
-        message: "Admin action taken on your account",
-      });
+      io.to(report.reporter.toString()).emit("user-notification", reporterNotif);
 
       return res.json({
         message: user.isPermanantlyBanned 
@@ -160,6 +163,7 @@ export const takeActionOnReport = async (req, res) => {
           banCount: user.banCount,
       });
     }
+
     return res.status(400).json({ message: "Invalid action type" });
   }catch (error) {
     console.error("Admin report action error:", error);

@@ -10,6 +10,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ChooseAction from "./pages/chooseAction";
 import { Dashboard } from "@/components/Dashboard";
+import { NotificationProvider } from "./contexts/NotificationContext";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
+        <NotificationProvider>
         <RideProvider>
           <Toaster />
           <Sonner />
@@ -30,6 +32,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </RideProvider>
+        </NotificationProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

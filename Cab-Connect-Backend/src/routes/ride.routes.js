@@ -658,22 +658,25 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
             hour12: true,
         });
 
-        await Notification.create({
+        const notif = await Notification.create({
             user: participantId,
-            message:
-            `You were removed from a cab ride.
+            message: `You were removed from a cab ride...
 
             Removed by: ${ride.creator.email}
 
-            Destination: ${ride.destination === 'airport' ? 'Airport' : 'Campus'}
+            Destination: ${ride.destination === "airport" ? "Airport" : "Campus"}
             Departure: ${formattedTime}
 
             If this was a mistake, please contact the ride creator.`,
+            type: "ride",
+            meta: {
+                action: "kick",
+                rideId: rideId.toString(),
+                destination: ride.destination,
+            },
         });
 
-        io.to(participantId.toString()).emit('ride:kicked', {
-         rideId: rideId.toString(),
-        });
+        io.to(participantId.toString()).emit("notification:new", notif);
 
         io.in(participantId.toString()).socketsLeave(rideId.toString());
 
@@ -774,7 +777,7 @@ router.patch("/:id/unlock", authMiddleware, async(req, res) => {
 
         io.emit("ride:updated", {
             rideId: rideId.toString(),
-            typ: "unlock",
+            type: "unlock",
             ride
         });
 

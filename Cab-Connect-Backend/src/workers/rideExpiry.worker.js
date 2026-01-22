@@ -34,14 +34,17 @@ export const rideExpiryWorker = new Worker(
         });
 
         for(const userId of ride.participants){
-            await Notification.create({
+            const notif = await Notification.create({
                 user: userId,
                 message: `Ride to ${ride.destination} expired automatically.`,
+                type: "ride",
+                meta: {
+                    rideId: rideId.toString(),
+                    destination: ride.destination,
+                },
             });
 
-            io.to(userId.toString()).emit("notification:new", {
-                message: `Ride to ${ride.destination} expired automatically.`,
-            });
+            io.to(userId.toString()).emit("notification:new", notif);
         }
     },
     { connection }

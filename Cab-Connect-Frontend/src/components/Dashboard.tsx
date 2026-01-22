@@ -17,7 +17,6 @@ export function Dashboard() {
   const { rides } = useRides();
   const [activeChatRide, setActiveChatRide] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('all');
-  const [notification, setNotification] = useState<any>(null);
 
   const [searchParams] = useSearchParams();
   const hideDisabledTimerRef = useRef<number | null>(null);
@@ -149,22 +148,6 @@ export function Dashboard() {
     });
   }, [rides, user]);
 
-  useEffect(() => {
-    const fetchNotification = async () => {
-      const res = await fetch('http://localhost:5000/notifications', {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-        },
-      });
-
-      const data = await res.json();
-      if (data.notifications?.length > 0) {
-        setNotification(data.notifications[0]);
-      }
-    };
-
-    fetchNotification();
-  }, []);
 
   const baseRides =
     activeTab === 'all'
@@ -362,38 +345,7 @@ export function Dashboard() {
       )}
 
       {/* Kick Participant */}
-      {notification && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-          <div className="bg-card w-96 rounded-xl p-6">
-            <h3 className="font-semibold text-lg mb-3">
-              {notification.message.includes("banned")
-                ? "Report Update"
-                : notification.message.includes("ride")
-                ? "Ride Update"
-                : "Notification"}
-            </h3>
-
-            <pre className="text-sm whitespace-pre-wrap mb-4">
-              {notification.message}
-            </pre>
-
-            <Button
-              className="w-full"
-              onClick={async () => {
-                await fetch(`http://localhost:5000/notifications/${notification._id}/read`, {
-                  method: 'PATCH',
-                  headers: {
-                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-                  },
-                });
-                setNotification(null);
-              }}
-            >
-              OK
-            </Button>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }

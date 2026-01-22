@@ -73,14 +73,17 @@ export const createReport = async (req, res) => {
         const admins = await User.find({ role: "admin" });
 
         for(const admin of admins){
-            await Notification.create({
+            const notif = await Notification.create({
                 user: admin._id,
                 message: "New user report submitted. Review required.",
+                type: "admin",
+                meta: {
+                    reportId: report._id.toString(),
+                    rideId: ride._id.toString(),
+                },
             });
 
-            io.to(admin._id.toString()).emit("admin-notification", {
-                message: "New user report submitted",
-            });
+            io.to(admin._id.toString()).emit("admin-notification", notif);
         }
 
         return res.status(201).json({

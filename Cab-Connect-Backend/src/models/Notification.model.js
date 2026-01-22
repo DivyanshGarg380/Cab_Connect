@@ -14,7 +14,25 @@ const notificationSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    readAt: {
+        type: Date,
+        default: null,
+    },
+    type: {
+        type: String,
+        enum: ["ride", "admin", "system"],
+        default: "system",
+    },
+    meta: {
+        type: Object,
+        default: {},
+    },
+    deleteAt: {
+        type: Date,
+        default: null,
+        index: { expires: 0},
+    },
 }, { timestamps: true });
 
-export default mongoose.models.notificationSchema || 
+export default mongoose.models.Notification || 
     mongoose.model('Notification', notificationSchema);

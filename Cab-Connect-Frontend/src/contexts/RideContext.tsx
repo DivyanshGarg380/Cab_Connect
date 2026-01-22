@@ -91,7 +91,7 @@ export function RideProvider({ children }: { children: ReactNode }) {
       throw err;
     }
   };
-
+  
   useEffect(() => {
     if(isAuthenticated){
       fetchRides();
@@ -277,6 +277,20 @@ export function RideProvider({ children }: { children: ReactNode }) {
     }
     setRides(prev => prev.filter(r => r._id !== rideId));
   };
+
+  useEffect(() => {
+    const handleKicked = ({ rideId }: { rideId: string }) => {
+      toast.error("You were removed from the ride.");
+      fetchRides();
+    };
+
+    socket.on("ride:kicked", handleKicked);
+
+    return () => {
+      socket.off("ride:kicked", handleKicked);
+    };
+  }, []);
+
 
   return (
     <RideContext.Provider value={{ rides, fetchRides, createRide, joinRide, leaveRide, deleteRide, fetchMessages, sendMessage, messages, clearUnread, unread, deleteRideAdmin}}>

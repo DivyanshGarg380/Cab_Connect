@@ -77,12 +77,20 @@ router.delete('/rides/:id', authMiddleware, adminMiddleware, async (req, res) =>
         });
 
         try {
-            await Notification.create({
+            const notif = await Notification.create({
                 user: creatorId,
                 message: notificationPayload.message,
+                type: "admin",
+                meta: {
+                    action: "ride_deleted",
+                    rideId: ride._id.toString(),
+                    destination: ride.destination,
+                    departureTime: ride.departureTime,
+                },
             });
 
-            io.to(creatorId).emit('admin-notification', { notificationPayload });
+            io.to(creatorId).emit("admin-notification", notif);
+            io.to(creatorId).emit("notification:new", notif);
             console.log('Notification saved & emitted');
         } catch (err) {
             console.error('Notification failed', err);
@@ -151,6 +159,5 @@ router.post('/unban/:userId', authMiddleware, adminMiddleware, async( req, res)=
         res.status(500).json({ message: 'Internal server error' });
     }
 });
-
 
 export default router;
