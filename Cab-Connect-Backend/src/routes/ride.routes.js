@@ -630,6 +630,12 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
             ride
         });
 
+        io.emit("ride:updated", {
+            rideId,
+            type: "kick",
+            ride,
+        });
+
         const getDisplayName = (email) => {
             const localPart = email.split('mit')[0];
 

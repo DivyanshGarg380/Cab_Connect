@@ -110,25 +110,27 @@ export function RideProvider({ children }: { children: ReactNode }) {
   }, []); 
 
   useEffect(() => {
-    socket.on("ride:updated", ({ rideId, type, ride }) => {
-      setRides(prev => {
-        if (type === "delete") {
-          return prev.filter(r => r._id !== rideId);
+    const handler = async ({ rideId, type, ride }) => {
+      setRides((prev) => {
+        if (type === "delete" || type === "expired") {
+          return prev.filter((r) => r._id !== rideId);
         }
 
-        const exists = prev.find(r => r._id === rideId);
-        if (exists) {
-          return prev.map(r => r._id === rideId ? ride : r);
-        }
+        const exists = prev.find((r) => r._id === rideId);
+        if (exists) return prev.map((r) => (r._id === rideId ? ride : r));
 
         return [...prev, ride];
       });
-    });
 
-    return () => {
-      socket.off("ride:updated");
+      if (type === "kick") {
+        await fetchRides();
+      }
     };
+
+    socket.on("ride:updated", handler);
+    return () => { socket.off("ride:updated", handler); };
   }, []);
+
 
   const joinRide = async (rideId: string) => {
     const token = localStorage.getItem('accessToken');
@@ -228,16 +230,18 @@ export function RideProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    socket.on('new-message', (message: Message) => {
-      setMessages(prev => ({
+    socket.on("new-message", (message: Message) => {
+      const rideKey = String(message.ride);
+
+      setMessages((prev) => ({
         ...prev,
-        [message.ride]: [...(prev[message.ride] || []), message],
+        [rideKey]: [...(prev[rideKey] || []), message],
       }));
 
-      setUnread(prev => ({
+      setUnread((prev) => ({
         ...prev,
-        [message.ride]: true,
-      }))
+        [rideKey]: true,
+      }));
     });
 
     return () => {
