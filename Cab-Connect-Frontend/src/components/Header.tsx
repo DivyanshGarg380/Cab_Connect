@@ -3,10 +3,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Plane, LogOut, User, Shield } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { Bell } from "lucide-react";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { socket } from "@/lib/socket";
-
+import { Bell, Car, ShieldAlert, Ban } from "lucide-react";
 
 type NotificationType = {
   _id: string;
@@ -150,6 +149,76 @@ export function Header() {
     };
   }, []);
 
+  const formatTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const getNotifMeta = (msg: string) => {
+    const m = msg.toLowerCase();
+
+    if (m.includes("removed") || m.includes("ride") || m.includes("expired")) {
+      return {
+        title: "Ride Update",
+        Icon: Car,
+        ring: "ring-teal-600/20",
+        bg: "bg-teal-50",
+        color: "text-teal-700",
+      };
+    }
+
+    if (m.includes("report")) {
+      return {
+        title: "Report Update",
+        Icon: ShieldAlert,
+        ring: "ring-amber-600/20",
+        bg: "bg-amber-50",
+        color: "text-amber-700",
+      };
+    }
+
+    if (m.includes("banned") || m.includes("ban")) {
+      return {
+        title: "Account Action",
+        Icon: Ban,
+        ring: "ring-red-600/20",
+        bg: "bg-red-50",
+        color: "text-red-700",
+      };
+    }
+
+    return {
+      title: "Notification",
+      Icon: Bell,
+      ring: "ring-gray-600/20",
+      bg: "bg-gray-50",
+      color: "text-gray-700",
+    };
+  };
+
+  const getNotifTitle = (msg: string) => {
+    const m = msg.toLowerCase();
+    if (m.includes("removed")) return "Ride Update";
+    if (m.includes("expired")) return "Ride Expired";
+    if (m.includes("banned")) return "Account Action";
+    if (m.includes("report")) return "Report Update";
+    return "Notification";
+  };
+
+  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const filteredNotifications =
+    filter === "unread"
+      ? notifications.filter((n) => !n.read)
+      : notifications;
+
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -210,40 +279,119 @@ export function Header() {
             </button>
 
             {openInbox && (
-              <div className="absolute right-0 mt-2 w-96 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
-                <div className="flex items-center justify-between px-4 py-3 border-b">
-                  <p className="font-semibold text-gray-900">Inbox</p>
+              <div className="absolute right-0 mt-2 w-[420px] bg-white border rounded-2xl shadow-xl overflow-hidden z-50">
+                {/* Header */}
+                <div className="px-4 pt-4 pb-3 border-b">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-gray-900 text-lg">Inbox</p>
 
-                  <button
-                    onClick={markAllAsRead}
-                    className="text-xs text-teal-600 hover:underline"
-                  >
-                    Mark all read
-                  </button>
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-xs font-medium text-teal-700 hover:text-teal-800 hover:underline"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+
+                  {/* Filter pills */}
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => setFilter("all")}
+                      className={`px-3 py-1 text-xs rounded-full border transition ${
+                        filter === "all"
+                          ? "bg-teal-600 text-white border-teal-600"
+                          : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      All
+                    </button>
+
+                    <button
+                      onClick={() => setFilter("unread")}
+                      className={`px-3 py-1 text-xs rounded-full border transition ${
+                        filter === "unread"
+                          ? "bg-teal-600 text-white border-teal-600"
+                          : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      Unread ({unreadCount})
+                    </button>
+                  </div>
                 </div>
 
-                <div className="max-h-96 overflow-auto">
-                  {notifications.length === 0 ? (
-                    <p className="px-4 py-6 text-sm text-gray-500">
-                      No notifications
-                    </p>
+                {/* List */}
+                <div className="max-h-[420px] overflow-auto">
+                  {filteredNotifications.length === 0 ? (
+                    <div className="px-4 py-10 text-center">
+                      <p className="text-sm font-medium text-gray-900">No notifications</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        You’re all caught up ✨
+                      </p>
+                    </div>
                   ) : (
-                    notifications.map((n) => (
-                      <button
-                        key={n._id}
-                        onClick={() => markAsRead(n._id)}
-                        className={`w-full text-left px-4 py-3 border-b hover:bg-gray-50 ${
-                          !n.read ? "bg-teal-50/40" : ""
-                        }`}
-                      >
-                        <p className="text-sm text-gray-900 whitespace-pre-wrap">
-                          {n.message}
-                        </p>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          {new Date(n.createdAt).toLocaleString("en-IN")}
-                        </p>
-                      </button>
-                    ))
+                    filteredNotifications.map((n) => {
+                      const meta = getNotifMeta(n.message);
+                      const Icon = meta.Icon;
+                      const isExpanded = expandedId === n._id;
+
+                      return (
+                        <div
+                          key={n._id}
+                          className={`px-4 py-3 border-b hover:bg-gray-50 transition ${
+                            !n.read ? "bg-teal-50/40" : ""
+                          }`}
+                        >
+                          <button
+                            className="w-full text-left"
+                            onClick={async () => {
+                              await markAsRead(n._id);
+                              setExpandedId((prev) => (prev === n._id ? null : n._id));
+                            }}
+                          >
+                            <div className="flex items-start gap-3">
+                              {/* Icon */}
+                              <div
+                                className={`w-10 h-10 rounded-xl ${meta.bg} ring-1 ${meta.ring} flex items-center justify-center shrink-0`}
+                              >
+                                <Icon className={`w-5 h-5 ${meta.color}`} />
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="font-semibold text-sm text-gray-900">
+                                    {meta.title}
+                                  </p>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {!n.read && (
+                                      <span className="w-2 h-2 rounded-full bg-teal-600" />
+                                    )}
+
+                                    <span className="text-[11px] text-gray-500">
+                                      {formatTime(n.createdAt)}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Preview */}
+                                <p
+                                  className={`text-sm text-gray-700 mt-1 whitespace-pre-wrap ${
+                                    isExpanded ? "" : "line-clamp-2"
+                                  }`}
+                                >
+                                  {n.message}
+                                </p>
+
+                                <p className="text-[11px] text-gray-400 mt-2">
+                                  Click to {isExpanded ? "collapse" : "expand"}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
