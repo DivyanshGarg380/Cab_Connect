@@ -38,6 +38,7 @@
 ## A Users Expired Rides ( Deleted from this Section within 2 Days )
 <img width="1901" height="868" alt="image" src="https://github.com/user-attachments/assets/c35cfdb1-3441-4a86-97b1-b0035efff54b" />
 
+> Uses Cron Jobs
 
 
 
