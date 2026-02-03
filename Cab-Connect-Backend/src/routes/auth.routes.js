@@ -88,7 +88,7 @@ router.post('/request-otp', otpLimit ,  async (req, res) => {
         );
         // strict college email check
         if (!collegeEmailRegex.test(email)) {
-            return res.status(403).json({ message: 'College email required' });
+            return res.status(400).json({ message: 'College email required' });
         }
         // prevent OTP spam (cooldown)
         const cooldownLeft = await getCooldownLeft(email);
@@ -248,6 +248,6 @@ router.get('/me', authMiddleware, async (req, res) => {
     console.error('/auth/me error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
-})
+});
 
 export default router;
