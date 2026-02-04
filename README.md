@@ -256,22 +256,32 @@ docker exec -it redis redis-cli ping
 npm run dev
 ```
 
-## 🧪 Testing Strategy
+## 🧪 Testing
 
-### API Testing
-- All REST APIs are tested using **Postman**
-- Separate collections for:
-  - Auth
-  - Rides
-  - Chat
+This project includes unit, integration, and advanced concurrency tests to ensure backend reliability and race-condition safety.
 
-### Route-Level Authentication Tests
-- Verify JWT is required for all protected routes
-- Reject requests with:
-  - Missing token
-  - Invalid token
-  - Expired token
-- Ensure users cannot access resources they do not own
+### 📦 Test Stack
+- **Vitest** – Test runner
+- **Supertest** – API endpoint testing
+- **MongoDB (local)** – Isolated test database
+
+---
+
+### ⚙️ Test Environment Setup
+
+1. Make sure MongoDB is running locally.
+
+2. Create a test database (auto-created on first run):
+   ```mongodb://127.0.0.1:27017/cabconnect_test```
+3. Add test variables to your `.env` (or `.env.test` if separated):
+
+    ```env```
+    ```JWT_ACCESS_SECRET=testsecretkey```
+4. Run All Tests
+
+  ```npx vitest run```
+
+
 
 ## 📚 API Documentation (Swagger)
 
