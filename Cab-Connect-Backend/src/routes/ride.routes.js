@@ -1,7 +1,7 @@
 import express from 'express';
 import Ride from '../models/Ride.model.js';
 import authMiddleware from '../middleware/auth.middleware.js';
-import { mongo } from 'mongoose';
+import { mongo, mongoose } from 'mongoose';
 import { isNonEmptyString, isValidDate } from '../utils/validate.js';
 import { io } from '../server.js';
 import banMiddleware from "../middleware/ban.middleware.js";
@@ -207,7 +207,7 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
         }
         
         const rideId = req.params.id;
-        const userId = new mongo.ObjectId(req.userId);
+        const userId = new mongoose.Types.ObjectId(req.userId);
 
 
         // Edge case 3: "User ( Not creator )" cant join more than 1 rides going to the same Destination
@@ -240,8 +240,21 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
                 participants: { $ne: userId },
                 $expr: { $lt: [ { $size: "$participants" }, 4 ] }
             },
-            { $push: { participants: userId } },
-            { new: true }
+            [
+                {
+                    $set: {
+                        participants: { $concatArrays: ["$participants", [userId]] },
+                        status: {
+                        $cond: [
+                            { $eq: [{ $add: [{ $size: "$participants" }, 1] }, 4] },
+                            "full",
+                            "$status"
+                        ]
+                        }
+                    }
+                }
+            ],
+            { new: true, updatePipeline: true}
         );
 
         if(!ride) {
