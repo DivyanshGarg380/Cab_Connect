@@ -9,5 +9,3 @@ updates:
     directory: "/Cab-Connect-Frontend"
     schedule:
       interval: "weekly"
-    ignore:
-      - dependency-name: "*"
