@@ -2,7 +2,7 @@
 
 Cab Connect is a secure, real-time ride-sharing platform built specifically for college students to coordinate shared cab rides (e.g., airport travel).  
 It replaces messy WhatsApp groups with a **structured, secure, and moderated system**.
-
+ 
 ---
 
 ## ✨ Key Features 
