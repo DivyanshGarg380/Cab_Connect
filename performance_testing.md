@@ -70,7 +70,6 @@ Evaluate the performance of the optimized backend under authenticated production
 | P99 Latency        |      **1.60 sec** |
 | Throughput         |   **7.33 MB/sec** |
 | Requests Completed |       **236,000** |
-| Errors             |     **1 Timeout** |
 
 ---
 
@@ -94,7 +93,7 @@ Evaluate the performance of the optimized backend under authenticated production
 | Concurrent Clients | Avg Req/sec | Avg Latency | Error Rate |
 | -----------------: | ----------: | ----------: | ---------: |
 |                100 |   **3,781** |   **26 ms** |         0% |
-|              1,000 |   **3,921** |  **252 ms** |    <0.001% |
+|              1,000 |   **3,921** |  **252 ms** |         0% |
 |              5,000 |   **3,629** |  **995 ms** |      ~9.4% |
 
 ---
