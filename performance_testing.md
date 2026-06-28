@@ -1,41 +1,38 @@
 # Performance Testing Report
 
 **Project:** Cab Connect Backend
+**Version:** Optimized Build
 **Date:** June 2026
-**Testing Tool:** Autocannon
-**Environment:** Windows (Local Development Machine)
+**Environment:** Windows (Local Machine)
+**Load Testing Tool:** Autocannon
 
 ---
 
-# Overview
+# Objective
 
-This report summarizes the HTTP performance evaluation conducted on the Cab Connect backend after performance optimizations. The objective was to measure throughput, latency, and system behavior under increasing concurrent load.
+Evaluate the performance of the optimized backend under authenticated production-like workloads by measuring throughput, latency, scalability, and behavior under increasing concurrent load.
 
 ---
 
 # Test Configuration
 
-| Parameter                | Value                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------- |
-| Framework                | Express.js                                                                            |
-| Runtime                  | Node.js                                                                               |
-| Database                 | MongoDB                                                                               |
-| Cache                    | Redis                                                                                 |
-| Authentication           | JWT                                                                                   |
-| Load Generator           | Autocannon                                                                            |
-| Test Duration            | 30–60 seconds                                                                         |
-| Target Endpoint          | `GET /rides?page=1&limit=50`                                                          |
-| Endpoint Characteristics | JWT Authentication, Redis Cache, MongoDB Aggregation, Pagination, Multiple `$lookup`s |
+| Property          | Value                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------- |
+| Runtime           | Node.js                                                                                        |
+| Framework         | Express.js                                                                                     |
+| Database          | MongoDB                                                                                        |
+| Cache             | Redis                                                                                          |
+| Authentication    | JWT                                                                                            |
+| Load Generator    | Autocannon                                                                                     |
+| Test Duration     | 30–60 seconds                                                                                  |
+| Endpoint          | `GET /rides?page=1&limit=50`                                                                   |
+| Endpoint Features | JWT Authentication, Redis Cache, MongoDB Aggregation Pipeline, Pagination, Multiple `$lookup`s |
 
 ---
 
 # Baseline Endpoint
 
-**Endpoint**
-
-```http
-GET /health
-```
+### `GET /health`
 
 | Concurrent Clients | Avg Req/sec | Avg Latency | P99 Latency |
 | -----------------: | ----------: | ----------: | ----------: |
@@ -46,85 +43,82 @@ GET /health
 
 ---
 
-# Authenticated Endpoint Benchmark
+# Authenticated API Benchmark
 
-**Endpoint**
+### `GET /rides?page=1&limit=50`
 
-```http
-GET /rides?page=1&limit=50
-```
+## 100 Concurrent Clients
 
-Authentication: Bearer JWT
-
-Caching: Redis
-
-Database: MongoDB Aggregation Pipeline
-
----
-
-## Test 1 — 100 Concurrent Clients
-
-| Metric             |            Result |
+| Metric             |             Value |
 | ------------------ | ----------------: |
-| Average Throughput | **3,995 req/sec** |
-| Average Latency    |      **24.63 ms** |
-| P99 Latency        |         **61 ms** |
-| Data Throughput    |   **7.63 MB/sec** |
-| Requests Completed |       **120,000** |
+| Average Throughput | **3,781 req/sec** |
+| Average Latency    |       **26.1 ms** |
+| P99 Latency        |        **101 ms** |
+| Throughput         |   **7.07 MB/sec** |
+| Requests Completed |       **114,000** |
 | Errors             |             **0** |
 
 ---
 
-## Test 2 — 1000 Concurrent Clients
+## 1000 Concurrent Clients
 
-| Metric             |            Result |
+| Metric             |             Value |
 | ------------------ | ----------------: |
-| Average Throughput | **2,804 req/sec** |
-| Average Latency    |     **347.89 ms** |
-| Median Latency     |        **260 ms** |
-| P99 Latency        |      **3.02 sec** |
-| Data Throughput    |   **5.36 MB/sec** |
-| Requests Completed |       **169,000** |
-| Errors             |             **0** |
+| Average Throughput | **3,921 req/sec** |
+| Average Latency    |        **252 ms** |
+| Median Latency     |        **159 ms** |
+| P99 Latency        |      **1.60 sec** |
+| Throughput         |   **7.33 MB/sec** |
+| Requests Completed |       **236,000** |
+| Errors             |     **1 Timeout** |
 
 ---
 
-## Test 3 — 5000 Concurrent Clients
+## 5000 Concurrent Clients (Stress Test)
 
-| Metric             |            Result |
+| Metric             |             Value |
 | ------------------ | ----------------: |
-| Average Throughput | **1,914 req/sec** |
-| Average Latency    |      **2.60 sec** |
-| Median Latency     |      **2.11 sec** |
-| P99 Latency        |      **9.62 sec** |
-| Data Throughput    |   **3.66 MB/sec** |
-| Requests Completed |       **111,000** |
-| HTTP Errors        |           **337** |
-| Request Timeouts   |           **194** |
+| Average Throughput | **3,629 req/sec** |
+| Average Latency    |        **995 ms** |
+| Median Latency     |        **880 ms** |
+| P99 Latency        |      **7.16 sec** |
+| Throughput         |   **6.78 MB/sec** |
+| Requests Completed |       **138,000** |
+| HTTP Errors        |        **13,000** |
+| Timeouts           |        **13,000** |
 
 ---
 
-# Performance Characteristics
+# Performance Summary
 
-| Concurrent Clients | Avg Req/sec | Avg Latency | Error Rate | Assessment                                  |
-| -----------------: | ----------: | ----------: | ---------: | ------------------------------------------- |
-|                100 |      ~4,000 |     24.6 ms |         0% | Stable                                      |
-|              1,000 |      ~2,800 |      348 ms |         0% | Stable under heavy load                     |
-|              5,000 |      ~1,900 |       2.6 s |      <0.4% | System saturation with graceful degradation |
+| Concurrent Clients | Avg Req/sec | Avg Latency | Error Rate |
+| -----------------: | ----------: | ----------: | ---------: |
+|                100 |   **3,781** |   **26 ms** |         0% |
+|              1,000 |   **3,921** |  **252 ms** |    <0.001% |
+|              5,000 |   **3,629** |  **995 ms** |      ~9.4% |
 
 ---
 
-# Key Observations
+# Scalability Analysis
 
-* The backend maintained approximately **4,000 authenticated requests per second** while keeping average latency below **25 ms**.
-* Under **1,000 concurrent clients**, request processing remained stable with no observed failures.
-* At **5,000 concurrent connections**, throughput remained above **1,900 requests/sec** while latency increased significantly, indicating CPU and event-loop saturation on the local development environment.
-* Even under saturation, the service continued processing requests rather than failing completely, exhibiting graceful degradation characteristics.
+| Load          | Observed Behavior                                                                                                                                                      |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 100 Clients   | Stable throughput with consistently low response times.                                                                                                                |
+| 1,000 Clients | Backend maintained nearly 4K authenticated requests/sec with minimal request failures, demonstrating efficient scaling under heavy load.                               |
+| 5,000 Clients | Service remained operational under extreme load while exhibiting graceful degradation through increased latency and request timeouts due to local hardware saturation. |
+
+---
+
+# Key Findings
+
+* Sustained approximately **3.9K authenticated requests/sec** during heavy-load testing.
+* Maintained **sub-300 ms average latency** under **1,000 concurrent clients**.
+* Successfully processed over **236,000 authenticated requests** during a single 60-second benchmark.
+* Redis caching and MongoDB aggregation pipeline remained stable under sustained load.
+* Stress-tested up to **5,000 concurrent HTTP connections**, where the application continued serving requests while degrading gracefully under hardware limits.
 
 ---
 
 # Conclusion
 
-The optimized backend demonstrates strong throughput characteristics for authenticated REST APIs backed by MongoDB and Redis.
-
-The system performs reliably under normal and heavy production-like loads, with the practical operating point observed around **100–1,000 concurrent clients** on local hardware. Stress testing at **5,000 concurrent connections** confirmed graceful degradation under extreme load while continuing to serve requests.
+The optimized Cab Connect backend demonstrates strong throughput and scalability characteristics for authenticated REST APIs backed by MongoDB and Redis. The application maintains stable performance across normal and heavy production-like workloads and continues operating under extreme stress conditions, with graceful degradation observed only after local machine resource saturation.
