@@ -18,7 +18,6 @@ if (cluster.isPrimary && process.env.NODE_ENV === 'production') {
 }
 
 async function startServer() {
-  const app = (await import('./app.js')).default;
   const { connectDB } = await import('./config/db.js');
   const { connectRedis } = await import('./config/redis.js');
   const { Server } = await import('socket.io');
@@ -27,16 +26,18 @@ async function startServer() {
   const http = await import('http');
   const { initChatSocket } = await import('./sockets/chat.socket.js');
   const { startCronJobs } = await import('./jobs/cron.job.js');
-  await import('./workers/rideExpiry.worker.js');
+  const { setIO } = await import('./socketInstance.js');
 
   const PORT = process.env.PORT || 5000;
 
   try {
     await Promise.all([connectDB(), connectRedis()]);
 
+    const app = (await import('./app.js')).default;
+    await import('./workers/rideExpiry.worker.js');
+
     const server = http.createServer(app);
 
-    // Redis adapter — required for socket.io to work across cluster workers
     const pubClient = createClient({ url: process.env.REDIS_URL });
     const subClient = pubClient.duplicate();
     await Promise.all([pubClient.connect(), subClient.connect()]);
@@ -47,12 +48,11 @@ async function startServer() {
       pingInterval: 25000,
       transports: ['websocket', 'polling'],
       maxHttpBufferSize: 1e6,
-      // Adapter bridges socket events across all cluster workers
       adapter: createAdapter(pubClient, subClient),
     });
 
-    // Expose io via app — avoids circular imports (routes use req.app.get('io'))
     app.set('io', io);
+    setIO(io);
 
     initChatSocket(io);
     startCronJobs();

@@ -5,7 +5,7 @@ const notificationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    index: true, // queries are always filtered by user
+    index: true, 
   },
   message: { type: String, required: true },
   read: { type: Boolean, default: false },
@@ -23,7 +23,6 @@ const notificationSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-// Compound index: user + read status is the most common query pattern
 notificationSchema.index({ user: 1, read: 1, createdAt: -1 });
 
 export default mongoose.models.Notification ||

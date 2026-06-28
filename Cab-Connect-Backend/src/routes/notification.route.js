@@ -4,9 +4,6 @@ import authMiddleware from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-// BEFORE: find() returns full Mongoose docs + separate countDocuments
-// AFTER:  lean() everywhere, and inbox uses a single $facet aggregate for data+count in 1 query
-
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const notifications = await Notification.find({ user: req.userId, read: false })
@@ -27,8 +24,6 @@ router.get('/inbox', authMiddleware, async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const skip  = (page - 1) * limit;
 
-    // BEFORE: find() + countDocuments() — 2 round-trips
-    // AFTER:  $facet — data + total in 1 round-trip
     const [result] = await Notification.aggregate([
       { $match: { user: req.userId } },
       {
@@ -58,7 +53,6 @@ router.get('/inbox', authMiddleware, async (req, res) => {
 
 router.get('/unread-count', authMiddleware, async (req, res) => {
   try {
-    // countDocuments hits the index directly — fast, no change needed
     const count = await Notification.countDocuments({ user: req.userId, read: false });
     return res.json({ count });
   } catch (err) {

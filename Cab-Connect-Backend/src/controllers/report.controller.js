@@ -2,10 +2,11 @@ import Report from "../models/Report.model.js";
 import Ride from "../models/Ride.model.js";
 import User from "../models/User.model.js";
 import Notification from "../models/Notification.model.js";
-import { io } from "../server.js";
+import { getIO } from "../socketInstance.js";
 
 export const createReport = async (req, res) => {
     try{
+        const io = getIO();
         const { rideId, reportedUserEmail, description } = req.body;
         const reporterId = req.userId;
 
@@ -100,4 +101,4 @@ export const createReport = async (req, res) => {
         console.error("Create report error:", err);
         return res.status(500).json({ message: "Internal server error" });
     }
-}
+};

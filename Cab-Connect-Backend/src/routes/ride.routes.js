@@ -14,7 +14,6 @@ import { cancelRideExpiryJob } from '../utils/cancelRideExpiryJob.js';
 
 const router = express.Router();
 
-// ─── POST /rides ────────────────────────────────────────────────────────────
 router.post('/', authMiddleware, banMiddleware, async (req, res) => {
   try {
     const { destination, departureTime } = req.body;
@@ -33,8 +32,6 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
 
     const userId = req.userId;
 
-    // BEFORE: 2 sequential queries (find active rides, then findOne for conflict)
-    // AFTER:  1 query using $or — single round-trip to MongoDB
     const [activeRides, conflictingRide] = await Promise.all([
       Ride.find({ creator: userId, status: { $in: ['open', 'full'] } })
           .select('destination')
@@ -68,7 +65,6 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
 
     const delay = rideDate.getTime() - Date.now();
 
-    // Fire queue + cache invalidation in parallel — don't await sequentially
     await Promise.all([
       rideExpiryQueue.add('expire-ride', { rideId: ride._id.toString() }, {
         delay: Math.max(delay, 0),
@@ -79,8 +75,6 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
       invalidateRideCache(ride._id.toString()),
     ]);
 
-    // Broadcast only to relevant rooms — not io.emit (all sockets)
-    // Clients subscribe to "rides:list" room on the list page
     const io = req.app.get('io');
     io.to('rides:list').emit('ride:updated', { rideId: ride._id.toString(), type: 'create', ride });
 
@@ -91,16 +85,11 @@ router.post('/', authMiddleware, banMiddleware, async (req, res) => {
   }
 });
 
-// ─── POST /rides/:id/join ────────────────────────────────────────────────────
 router.post('/:id/join', authMiddleware, async (req, res) => {
   try {
     const rideId = req.params.id;
     const userId = new mongoose.Types.ObjectId(req.userId);
 
-    // BEFORE: 3 sequential queries (findOne creator check, findById, findOne conflict)
-    // AFTER:  2 parallel queries — the conflict check needs destination from rideToJoin,
-    //         so we still need 2 rounds, but we eliminate one sequential hop by running
-    //         the creator check at the same time as the ride fetch.
     const [activeCreatedRide, rideToJoin] = await Promise.all([
       Ride.exists({
         creator: req.userId,
@@ -117,7 +106,6 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Ride not found' });
     }
 
-    // Now we have destination — check conflict
     const conflictingRide = await Ride.exists({
       _id: { $ne: rideId },
       destination: rideToJoin.destination,
@@ -131,7 +119,6 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
       });
     }
 
-    // Atomic findOneAndUpdate — join + status transition in one DB op
     const ride = await Ride.findOneAndUpdate(
       {
         _id: rideId,
@@ -148,14 +135,13 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
           },
         },
       }],
-      { new: true }
+      { new: true, updatePipeline: true }
     );
 
     if (!ride) {
       return res.status(400).json({ message: 'Unable to join ride. It may be full, locked, expired, or you are already a participant.' });
     }
 
-    // Fetch user email + create system message + invalidate cache — all in parallel
     const [user] = await Promise.all([
       User.findById(req.userId).select('email').lean(),
       invalidateRideCache(rideId),
@@ -180,20 +166,17 @@ router.post('/:id/join', authMiddleware, async (req, res) => {
   }
 });
 
-// ─── POST /rides/:id/leave ───────────────────────────────────────────────────
 router.post('/:id/leave', authMiddleware, async (req, res) => {
   try {
     const rideId = req.params.id;
     const userId = new mongo.ObjectId(req.userId);
 
-    // BEFORE: findById then ride.save() — 2 round-trips
-    // AFTER:  Single atomic findOneAndUpdate — 1 round-trip
     const ride = await Ride.findOneAndUpdate(
       {
         _id: rideId,
         status: { $ne: 'expired' },
-        creator: { $ne: userId },        // creator can't leave
-        participants: userId,             // must be a participant
+        creator: { $ne: userId },     
+        participants: userId,    
       },
       [{
         $set: {
@@ -209,11 +192,10 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
           },
         },
       }],
-      { new: true }
+      { new: true, updatePipeline: true }
     );
 
     if (!ride) {
-      // Distinguish between "not found" and "creator trying to leave"
       const exists = await Ride.exists({ _id: rideId });
       if (!exists) return res.status(404).json({ message: 'Ride not found' });
       const isCreator = await Ride.exists({ _id: rideId, creator: userId });
@@ -245,14 +227,11 @@ router.post('/:id/leave', authMiddleware, async (req, res) => {
   }
 });
 
-// ─── DELETE /rides/:id ───────────────────────────────────────────────────────
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const rideId = req.params.id;
     const userId = req.userId;
 
-    // BEFORE: findById + findByIdAndDelete — 2 round-trips
-    // AFTER:  single findOneAndDelete with creator check in query
     const ride = await Ride.findOneAndDelete({ _id: rideId, creator: userId });
 
     if (!ride) {
@@ -261,7 +240,6 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: 'Only the creator can delete this ride' });
     }
 
-    // Fire all side-effects in parallel
     const io = req.app.get('io');
     await Promise.all([
       cancelRideExpiryJob(rideId),
@@ -279,7 +257,6 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// ─── GET /rides/suggestions ──────────────────────────────────────────────────
 router.get(
   '/suggestions',
   authMiddleware,
@@ -322,8 +299,6 @@ router.get(
         });
       }
 
-      // BEFORE: aggregate + separate populate query — 2 round-trips
-      // AFTER:  single $lookup inside the aggregate — 1 round-trip
       const suggestions = await Ride.aggregate([
         {
           $match: {
@@ -382,15 +357,12 @@ router.get(
   }
 );
 
-// ─── GET /rides/:id ──────────────────────────────────────────────────────────
 router.get(
   '/:id',
   authMiddleware,
   cache((req) => `rides:${req.params.id}`, 20),
   async (req, res) => {
     try {
-      // BEFORE: .populate() — 2 queries (find ride + find users)
-      // AFTER:  single $lookup aggregate — 1 query
       const [ride] = await Ride.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(req.params.id) } },
         {
@@ -423,7 +395,6 @@ router.get(
   }
 );
 
-// ─── GET /rides ───────────────────────────────────────────────────────────────
 router.get(
   '/',
   authMiddleware,
@@ -435,7 +406,6 @@ router.get(
     const page  = Math.max(parseInt(req.query.page)  || 1,   1);
     const limit = Math.min(parseInt(req.query.limit) || 50, 100);
 
-    // Single aggregate with $lookup instead of find + populate (2 queries)
     const rides = await Ride.aggregate([
       { $match: { status: { $in: ['open', 'full'] } } },
       { $sort: { departureTime: 1 } },
@@ -466,7 +436,6 @@ router.get(
   }
 );
 
-// ─── GET /rides/:id/messages ─────────────────────────────────────────────────
 router.get(
   '/:id/messages',
   authMiddleware,
@@ -474,7 +443,6 @@ router.get(
   cache((req) => `rides:${req.params.id}:messages`, 15),
   async (req, res) => {
     try {
-      // Single aggregate with $lookup instead of find + populate
       const messages = await Message.aggregate([
         { $match: { ride: new mongoose.Types.ObjectId(req.params.id) } },
         { $sort: { createdAt: 1 } },
@@ -496,7 +464,6 @@ router.get(
   }
 );
 
-// ─── POST /rides/:id/messages ────────────────────────────────────────────────
 router.post('/:id/messages', authMiddleware, banMiddleware, async (req, res) => {
   try {
     const rideId = req.params.id;
@@ -506,9 +473,6 @@ router.post('/:id/messages', authMiddleware, banMiddleware, async (req, res) => 
       return res.status(400).json({ message: 'Message text required' });
     }
 
-    // BEFORE: Ride.findById check + Message.create + message.populate — 3 queries
-    // AFTER:  exists check + create + aggregate populate — still 3, but exists is O(1)
-    //         and we skip Mongoose hydration on the ride check
     const [rideExists] = await Promise.all([
       Ride.exists({ _id: rideId }),
     ]);
@@ -518,11 +482,9 @@ router.post('/:id/messages', authMiddleware, banMiddleware, async (req, res) => 
 
     const message = await Message.create({ ride: rideId, sender: req.userId, text: text.trim() });
 
-    // Populate sender inline — single extra query, but lean
     const sender = await User.findById(req.userId).select('email').lean();
     const populatedMessage = { ...message.toObject(), sender };
 
-    // Fire cache invalidation in background
     invalidateRideCache(rideId).catch(() => {});
 
     const io = req.app.get('io');
@@ -535,7 +497,6 @@ router.post('/:id/messages', authMiddleware, banMiddleware, async (req, res) => 
   }
 });
 
-// ─── POST /rides/:id/kick ────────────────────────────────────────────────────
 router.post('/:id/kick', authMiddleware, async (req, res) => {
   try {
     const rideId = req.params.id;
@@ -548,8 +509,6 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
 
     const participantObjId = new mongoose.Types.ObjectId(participantId);
 
-    // BEFORE: findById + populate + ride.save() — 3 round-trips
-    // AFTER:  single atomic findOneAndUpdate — 1 round-trip
     const ride = await Ride.findOneAndUpdate(
       {
         _id: rideId,
@@ -570,7 +529,7 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
           },
         },
       }],
-      { new: true }
+      { new: true, updatePipeline: true }
     );
 
     if (!ride) {
@@ -581,7 +540,6 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'User not in ride' });
     }
 
-    // Fetch creator + participant emails + invalidate cache — all in parallel
     const [creator, participant] = await Promise.all([
       User.findById(creatorId).select('email').lean(),
       User.findById(participantId).select('email').lean(),
@@ -596,7 +554,6 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
       day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true,
     });
 
-    // Create system message + notification in parallel
     const [systemMessage, notif] = await Promise.all([
       Message.create({
         ride: rideId,
@@ -625,7 +582,6 @@ router.post('/:id/kick', authMiddleware, async (req, res) => {
   }
 });
 
-// ─── PATCH /rides/:id/lock ───────────────────────────────────────────────────
 router.patch('/:id/lock', authMiddleware, async (req, res) => {
   try {
     const rideId = req.params.id;
@@ -660,7 +616,7 @@ router.patch('/:id/lock', authMiddleware, async (req, res) => {
   }
 });
 
-// ─── PATCH /rides/:id/unlock ─────────────────────────────────────────────────
+
 router.patch('/:id/unlock', authMiddleware, async (req, res) => {
   try {
     const rideId = req.params.id;

@@ -6,7 +6,6 @@ import User from "../models/User.model.js";
 const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
 
 export const initChatSocket = (io) => {
-  // Auth middleware — runs once per connection, not per message
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     if (!token) return next(new Error('Unauthenticated: No token provided'));
@@ -21,12 +20,10 @@ export const initChatSocket = (io) => {
   });
 
   io.on('connection', (socket) => {
-    // Join personal room for notifications
     socket.join(socket.userId);
 
     socket.on('join-ride', async (rideId) => {
       try {
-        // Lean + select only what we need
         const ride = await Ride.findById(rideId)
           .select("status participants")
           .lean();
@@ -51,7 +48,7 @@ export const initChatSocket = (io) => {
         if (!content || !content.trim()) return socket.emit('error', 'Message cannot be empty');
         if (content.length > 500) return socket.emit('error', 'Message too long');
 
-        // Fetch ride and user in parallel — halves DB round-trips
+        
         const [ride, user] = await Promise.all([
           Ride.findById(rideId).select("status participants").lean(),
           User.findById(socket.userId).select("isPermanentlyBanned banUntil").lean(),

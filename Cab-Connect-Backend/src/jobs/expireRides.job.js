@@ -1,9 +1,10 @@
 import Ride from "../models/Ride.model.js";
-import { io } from "../server.js";
+import { getIO } from "../socketInstance.js";
 
 
 export const expireOldRides = async () => {
     try{
+        const io = getIO();
         const now = new Date();
 
         const ridesToExpire  = await Ride.find(

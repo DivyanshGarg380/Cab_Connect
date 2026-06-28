@@ -2,7 +2,7 @@ import Report from "../models/Report.model.js";
 import User from "../models/User.model.js";
 import Notification from "../models/Notification.model.js";
 import Message from "../models/Message.model.js";
-import { io } from "../server.js";
+import { getIO } from "../socketInstance.js";
 
 export const getAllReports = async (req, res) => {
   try {
@@ -60,10 +60,11 @@ export const getReportChat = async(req, res) => {
       message: "Internal server error"
     });
   }
-}
+};
 
 export const takeActionOnReport = async (req, res) => {
   try{
+    const io = getIO();
     const { reportId } = req.params;
     const { action, adminNote } = req.body;
     
@@ -74,20 +75,19 @@ export const takeActionOnReport = async (req, res) => {
     }
 
     const report = await Report.findById(reportId);
+
     if(!report){
       return res.status(404).json({
         message: "Report not found"
       });
     }
 
-    // preventing double action 
     if(report.status === 'action_taken' || report.status === "dismissed"){
       return res.status(400).json({
         message: "Action already taken on this report",
       });
     }
 
-    // dismiss
     if(action == "dismiss"){
       report.status = "dismissed";
       report.adminNote = adminNote || "";
@@ -110,7 +110,6 @@ export const takeActionOnReport = async (req, res) => {
       });
     }
 
-    // Ban user ( 1 report => 1 strike ( 1/3))
     if(action == "ban"){
       const user = await User.findById(report.reportedUser);
 
@@ -169,4 +168,4 @@ export const takeActionOnReport = async (req, res) => {
     console.error("Admin report action error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
-}
+};

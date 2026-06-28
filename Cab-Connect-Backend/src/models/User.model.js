@@ -17,8 +17,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// email is already unique-indexed (Mongoose creates it automatically)
-// Add index on fields queried in ban/admin middleware
 userSchema.index({ _id: 1, banUntil: 1, isPermanantlyBanned: 1 });
 userSchema.index({ role: 1 });
 

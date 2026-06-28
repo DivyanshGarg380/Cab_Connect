@@ -7,8 +7,6 @@ import User from "../models/User.model.js";
 
 const router = express.Router();
 
-// All admin routes: authMiddleware + adminMiddleware applied once via router.use
-// avoids repeating middleware on every route definition
 router.use(authMiddleware, adminMiddleware);
 
 router.get('/rides', async (req, res) => {
@@ -16,8 +14,6 @@ router.get('/rides', async (req, res) => {
     const page  = Math.max(parseInt(req.query.page)  || 1,   1);
     const limit = Math.min(parseInt(req.query.limit) || 50, 200);
 
-    // BEFORE: Ride.find() with no pagination — could return thousands of docs
-    // AFTER:  paginated + lean
     const rides = await Ride.find()
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -51,8 +47,6 @@ router.get('/users', async (req, res) => {
 
 router.delete('/rides/:id', async (req, res) => {
   try {
-    // BEFORE: findById + deleteOne — 2 round-trips
-    // AFTER:  findByIdAndDelete — 1 round-trip
     const ride = await Ride.findByIdAndDelete(req.params.id).lean();
 
     if (!ride) return res.status(404).json({ message: 'Ride not found' });
@@ -60,7 +54,6 @@ router.delete('/rides/:id', async (req, res) => {
     const io = req.app.get('io');
     io.to(ride._id.toString()).emit('ride-ended', { message: 'This ride was removed by the administrator' });
 
-    // Notification is a side effect — don't block the response
     setImmediate(async () => {
       try {
         const notif = await Notification.create({
@@ -84,8 +77,6 @@ router.delete('/rides/:id', async (req, res) => {
 
 router.post('/ban/:userId', async (req, res) => {
   try {
-    // BEFORE: findById + user.save() — 2 round-trips with Mongoose overhead
-    // AFTER:  single findOneAndUpdate with $inc — 1 round-trip, no hydration
     const user = await User.findByIdAndUpdate(
       req.params.userId,
       [

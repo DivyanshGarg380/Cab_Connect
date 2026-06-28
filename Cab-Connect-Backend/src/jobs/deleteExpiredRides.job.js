@@ -1,9 +1,10 @@
 import Ride from "../models/Ride.model.js";
-import { io } from '../server.js';
+import { getIO } from '../socketInstance.js';
 import Message from "../models/Message.model.js";
 
 export const deleteExpiredRides = async () => {
     try {
+        const io = getIO();
 
         const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
         const cutoff = new Date(Date.now() - TWO_DAYS);

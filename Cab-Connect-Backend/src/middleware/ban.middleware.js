@@ -1,6 +1,5 @@
 import User from "../models/User.model.js";
 
-// Lean query — only fetch the two ban fields, no Mongoose overhead
 const banMiddleware = async (req, res, next) => {
   const user = await User.findById(req.userId)
     .select("banUntil isPermanantlyBanned")
