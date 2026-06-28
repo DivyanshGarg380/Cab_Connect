@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import Ride from '../models/Ride.model.js';
 import Message from '../models/Message.model.js';
 import User from "../models/User.model.js";
+import { invalidateRideMessagesCache } from "../utils/cacheInvalidate.js";
 
 const JWT_SECRET = process.env.JWT_ACCESS_SECRET;
 
@@ -51,12 +52,12 @@ export const initChatSocket = (io) => {
         
         const [ride, user] = await Promise.all([
           Ride.findById(rideId).select("status participants").lean(),
-          User.findById(socket.userId).select("isPermanentlyBanned banUntil").lean(),
+          User.findById(socket.userId).select("isPermanantlyBanned banUntil").lean(),
         ]);
 
         if (!user) return socket.emit('error', 'User not found');
 
-        if (user.isPermanentlyBanned || (user.banUntil && user.banUntil > new Date())) {
+        if (user.isPermanantlyBanned || (user.banUntil && user.banUntil > new Date())) {
           return socket.emit('error', 'You are banned from conversing in this chat');
         }
 
@@ -76,6 +77,8 @@ export const initChatSocket = (io) => {
           sender: socket.userId,
           text: content.trim(),
         });
+
+        await invalidateRideMessagesCache(rideId);
 
         io.to(rideId).emit('new-message', {
           rideId,
