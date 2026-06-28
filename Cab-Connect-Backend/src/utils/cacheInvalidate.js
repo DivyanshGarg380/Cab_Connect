@@ -4,16 +4,16 @@ async function delByPattern(pattern) {
   if (!redisClient.isOpen) return;
 
   const keysToDelete = [];
-  let cursor = 0;
+  let cursor = '0';
 
   do {
     const result = await redisClient.scan(cursor, {
       MATCH: pattern,
       COUNT: 200, 
     });
-    cursor = result.cursor;
+    cursor = String(result.cursor);
     keysToDelete.push(...result.keys);
-  } while (cursor !== 0);
+  } while (cursor !== '0');
 
   if (keysToDelete.length === 0) return;
 
