@@ -15,3 +15,7 @@
 > Update 07/04/2026:    
 > Will not be deploying this as someone already made it :(    
 > Visit /Demo.md for sneak peak into **Cab Connect**  
+
+> Update 28/06/2026:
+> Deployment plans for this project has been cancelled.
+> Full focus is shifted to improve its backend's metrics (visit /performance_testing.md)
