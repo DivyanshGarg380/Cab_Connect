@@ -231,7 +231,7 @@ router.get('/me', authMiddleware, async (req, res) => {
     try {
     const user = await User.findById(req.userId).select(
       '_id email role'
-    );
+    ).lean();
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });

@@ -1,38 +1,41 @@
 import redisClient from "../config/redis.js";
 
+// Pre-serialize common headers to avoid repeated work
+const CACHE_HIT_HEADER  = 'HIT';
+const CACHE_MISS_HEADER = 'MISS';
+
 export const cache = (keyBuilder, ttl = 60) => {
   return async (req, res, next) => {
+    if (!redisClient.isOpen) return next();
+
+    const key = typeof keyBuilder === "function" ? keyBuilder(req) : keyBuilder;
+
     try {
-      if (!redisClient.isOpen) return next();
-
-      const key = typeof keyBuilder === "function" ? keyBuilder(req) : keyBuilder;
-
       const cached = await redisClient.get(key);
-
       if (cached) {
-        try {
-          return res.status(200).json(JSON.parse(cached));
-        } catch (e) {
-          await redisClient.del(key);
-        }
+        res.setHeader('X-Cache', CACHE_HIT_HEADER);
+        // setHeader + end in one shot — avoids double-write overhead
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        return res.end(cached); // send raw string — skip JSON.parse + re-stringify
       }
-
-      const originalJson = res.json.bind(res);
-      res.json = async (body) => {
-        try {
-          if (res.statusCode >= 400) return originalJson(body);
-
-          await redisClient.setEx(key, ttl, JSON.stringify(body));
-        } catch (e) {
-          console.log("Redis cache set error:", e.message);
-        }
-        return originalJson(body);
-      };
-
-      next();
-    } catch (err) {
-      console.log("Redis Middleware Error:", err?.message || err);
+    } catch (e) {
+      console.error('Redis GET error:', e.message);
       return next();
     }
+
+    res.setHeader('X-Cache', CACHE_MISS_HEADER);
+
+    const originalJson = res.json.bind(res);
+    res.json = (body) => {
+      if (res.statusCode < 400) {
+        const serialized = JSON.stringify(body);
+        // Fire-and-forget: don't await, don't block response
+        redisClient.setEx(key, ttl, serialized)
+          .catch(e => console.error('Redis SET error:', e.message));
+      }
+      return originalJson(body);
+    };
+
+    next();
   };
 };

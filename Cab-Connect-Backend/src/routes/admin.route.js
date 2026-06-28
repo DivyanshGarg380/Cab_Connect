@@ -3,161 +3,140 @@ import Ride from '../models/Ride.model.js';
 import authMiddleware from '../middleware/auth.middleware.js';
 import adminMiddleware from '../middleware/admin.middleware.js';
 import Notification from "../models/Notification.model.js";
-import { io } from "../server.js";
-import User from "../models/User.model.js"
+import User from "../models/User.model.js";
 
 const router = express.Router();
 
-/**
- * @swagger
- * tags:
- *   name: Admin
- *   description: Admin APIs
- */
+// All admin routes: authMiddleware + adminMiddleware applied once via router.use
+// avoids repeating middleware on every route definition
+router.use(authMiddleware, adminMiddleware);
 
-/**
- * @swagger
- * /admin/users:
- *   get:
- *     summary: Get all users (admin)
- *     tags: [Admin]
- *     responses:
- *       200:
- *         description: Users list
- */
+router.get('/rides', async (req, res) => {
+  try {
+    const page  = Math.max(parseInt(req.query.page)  || 1,   1);
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
 
-/**
- * @swagger
- * /admin/rides:
- *   get:
- *     summary: Get all rides (admin)
- *     tags: [Admin]
- *     responses:
- *       200:
- *         description: Rides list
- */
+    // BEFORE: Ride.find() with no pagination — could return thousands of docs
+    // AFTER:  paginated + lean
+    const rides = await Ride.find()
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
 
-/*
-    Admin can view all rides
-*/
-
-router.get('/rides', authMiddleware, adminMiddleware, async (req, res) => {
-    try{
-        const rides = await Ride.find().sort({ createdAt: -1 });
-        res.json({ rides });
-    } catch(error) {
-        console.error('ADMIN /rides error:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
-    }
+    return res.json({ rides, page, limit });
+  } catch (error) {
+    console.error('ADMIN /rides error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
 
-router.delete('/rides/:id', authMiddleware, adminMiddleware, async (req, res) => {
-    try {
-        const ride = await Ride.findById(req.params.id);
+router.get('/users', async (req, res) => {
+  try {
+    const page  = Math.max(parseInt(req.query.page)  || 1,   1);
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
 
-        console.log('ADMIN DELETE HIT', req.params.id);
+    const users = await User.find()
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
 
-        if(!ride){
-            return res.status(404).json({ message: 'Ride not found' });
-        }
-        const creatorId = ride.creator.toString();
-        const notificationPayload = {
-            title: 'Ride Removed',
-            message: 'Your ride was removed by the administrator due to policy reasons.',
-            ride: {
-                destination: ride.destination,
-                departureTime: ride.departureTime,
+    return res.json({ users, page, limit });
+  } catch (error) {
+    console.error('ADMIN /users error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+router.delete('/rides/:id', async (req, res) => {
+  try {
+    // BEFORE: findById + deleteOne — 2 round-trips
+    // AFTER:  findByIdAndDelete — 1 round-trip
+    const ride = await Ride.findByIdAndDelete(req.params.id).lean();
+
+    if (!ride) return res.status(404).json({ message: 'Ride not found' });
+
+    const io = req.app.get('io');
+    io.to(ride._id.toString()).emit('ride-ended', { message: 'This ride was removed by the administrator' });
+
+    // Notification is a side effect — don't block the response
+    setImmediate(async () => {
+      try {
+        const notif = await Notification.create({
+          user: ride.creator,
+          message: 'Your ride was removed by the administrator due to policy reasons.',
+          type: 'admin',
+          meta: { action: 'ride_deleted', rideId: ride._id.toString(), destination: ride.destination, departureTime: ride.departureTime },
+        });
+        io.to(ride.creator.toString()).emit('notification:new', notif);
+      } catch (err) {
+        console.error('Admin delete notification failed:', err.message);
+      }
+    });
+
+    return res.json({ message: 'Ride deleted by admin' });
+  } catch (error) {
+    console.error('Admin delete ride error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/ban/:userId', async (req, res) => {
+  try {
+    // BEFORE: findById + user.save() — 2 round-trips with Mongoose overhead
+    // AFTER:  single findOneAndUpdate with $inc — 1 round-trip, no hydration
+    const user = await User.findByIdAndUpdate(
+      req.params.userId,
+      [
+        {
+          $set: {
+            banCount: { $add: ['$banCount', 1] },
+            isPermanantlyBanned: { $gte: [{ $add: ['$banCount', 1] }, 3] },
+            banUntil: {
+              $cond: [
+                { $gte: [{ $add: ['$banCount', 1] }, 3] },
+                null,
+                { $dateAdd: { startDate: '$$NOW', unit: 'day', amount: 7 } },
+              ],
             },
-        };
+          },
+        },
+      ],
+      { new: true, lean: true }
+    );
 
-        await Ride.deleteOne({ _id: ride._id });
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-        io.to(ride._id.toString()).emit('ride-ended', {
-            message: 'This ride was removed by the administrator',
-        });
-
-        try {
-            const notif = await Notification.create({
-                user: creatorId,
-                message: notificationPayload.message,
-                type: "admin",
-                meta: {
-                    action: "ride_deleted",
-                    rideId: ride._id.toString(),
-                    destination: ride.destination,
-                    departureTime: ride.departureTime,
-                },
-            });
-
-            io.to(creatorId).emit("admin-notification", notif);
-            io.to(creatorId).emit("notification:new", notif);
-            console.log('Notification saved & emitted');
-        } catch (err) {
-            console.error('Notification failed', err);
-        }
-       
-        res.json({ message: 'Ride was deleted by the admin' });
-    }catch (error){
-        console.error('Admin delete ride error: ', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
-
+    return res.json({
+      message: user.isPermanantlyBanned ? 'User permanently banned' : 'User banned for 7 days',
+      banCount: user.banCount,
+    });
+  } catch (error) {
+    console.error('Ban user error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
-router.post('/ban/:userId', authMiddleware, adminMiddleware, async (req, res) => {
-    try{
-        const user = await User.findById(req.params.userId);
+router.post('/unban/:userId', async (req, res) => {
+  try {
+    const user = await User.findOneAndUpdate(
+      { _id: req.params.userId, isPermanantlyBanned: false },
+      { $set: { banUntil: null } },
+      { new: true, lean: true }
+    );
 
-        if(!user){
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        user.banCount += 1;
-        if(user.banCount >= 3){
-            user.isPermanantlyBanned = true;
-            user.banUntil = null;
-        }else{
-            // 7 day ban cycle begins
-            user.banUntil = new Date(
-                Date.now() + 7*24*60*60*1000
-            );
-        }
-
-        await user.save();
-        res.json({
-            message: user.isPermanantlyBanned ?
-                'User Permanently banned' :
-                'User banned for 7 days',
-            banCount: user.banCount,
-        });
-    }catch( error){
-        console.log('Ban user Error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+    if (!user) {
+      const exists = await User.exists({ _id: req.params.userId });
+      if (!exists) return res.status(404).json({ message: 'User not found' });
+      return res.status(400).json({ message: 'Cannot unban permanently banned user' });
     }
-});
 
-router.post('/unban/:userId', authMiddleware, adminMiddleware, async( req, res)=> {
-    try{
-        const user = await User.findById(req.params.userId);
-
-        if(!user){
-            return res.status(404).json({ message: 'User not found' });
-        }
-        
-        if(user.isPermanantlyBanned){
-            return res.status(400).json({
-                message: 'Cannot Unban permanently banned user',
-            });
-        }
-
-        user.banUntil = null;
-        await user.save();
-
-        res.json({ message: 'User unbanned successfully'});
-    } catch(error){
-        console.log('Unban user error: ', error);
-        res.status(500).json({ message: 'Internal server error' });
-    }
+    return res.json({ message: 'User unbanned successfully' });
+  } catch (error) {
+    console.error('Unban user error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
 });
 
 export default router;

@@ -1,38 +1,47 @@
 import redisClient from "../config/redis.js";
 
+// SCAN + DEL in a single pipeline pass instead of multiple round-trips
 async function delByPattern(pattern) {
-  if(!redisClient.isOpen) return;
-  let cursor = "0";
+  if (!redisClient.isOpen) return;
 
+  const keysToDelete = [];
+  let cursor = 0;
+
+  // Collect all matching keys first
   do {
-    const { cursor: nextCursor, keys } = await redisClient.scan(cursor, {
+    const result = await redisClient.scan(cursor, {
       MATCH: pattern,
-      COUNT: 100,
+      COUNT: 200, // larger COUNT = fewer round-trips
     });
+    cursor = result.cursor;
+    keysToDelete.push(...result.keys);
+  } while (cursor !== 0);
 
-    cursor = nextCursor;
+  if (keysToDelete.length === 0) return;
 
-    if(keys.length){
-      await redisClient.del(keys);
-    }
-  }while(cursor !== "0");
+  // Delete in a single pipeline call (one network round-trip)
+  const pipeline = redisClient.multi();
+  for (const key of keysToDelete) pipeline.del(key);
+  await pipeline.exec();
 }
 
 export const invalidateRideCache = async (rideId) => {
+  if (!redisClient.isOpen) return;
+
   try {
-    if (!redisClient.isOpen) return;
-
-    await redisClient.del("rides:all");
-
+    // Pipeline the known-key deletes — one round-trip instead of 3
+    const pipeline = redisClient.multi();
+    pipeline.del("rides:all");
     if (rideId) {
-      await redisClient.del(`rides:${rideId}`);
-      await redisClient.del(`rides:${rideId}:messages`);
+      pipeline.del(`rides:${rideId}`);
+      pipeline.del(`rides:${rideId}:messages`);
     }
+    await pipeline.exec();
 
+    // Pattern scan is separate (can't pipeline SCAN)
     await delByPattern("rides:suggestions:*");
-
   } catch (err) {
-    console.log("Redis cache invalidate error:", err.message);
+    console.error("Redis cache invalidate error:", err.message);
   }
 };
 
@@ -41,6 +50,6 @@ export const invalidateRideMessagesCache = async (rideId) => {
     if (!redisClient.isOpen) return;
     await redisClient.del(`rides:${rideId}:messages`);
   } catch (err) {
-    console.log("Redis message cache invalidate error:", err.message);
+    console.error("Redis message cache invalidate error:", err.message);
   }
 };
