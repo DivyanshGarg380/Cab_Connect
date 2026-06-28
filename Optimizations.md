@@ -3,7 +3,7 @@
 
 ---
 
-## The Starting Point (Your Original Code)
+## The Starting Point
 
 - **200 concurrent users**, ~1,000 req/sec, ~100ms latency
 - Would crash beyond that
