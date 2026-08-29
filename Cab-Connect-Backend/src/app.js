@@ -1,12 +1,10 @@
 import express from 'express';
 import cors from 'cors';
-import compression from 'compression';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { apiLimit } from './middleware/rateLimit.middleware.js';
 
 let swaggerReady = false;
-
 const lazySwagger = async (req, res, next) => {
   if (!swaggerReady) {
     const [{ default: swaggerUi }, { default: swaggerSpec }] = await Promise.all([
@@ -31,28 +29,24 @@ const app = express();
 
 app.use(helmet());
 app.set('trust proxy', 1);
-
-app.use(compression({ threshold: 1024 }));
-
 app.use(cors());
-app.use(express.json({ limit: '10kb' }));
-app.use(cookieParser());
+// app.use(apiLimit);
 
-app.use(apiLimit);
+const jsonParser = express.json({ limit: '10kb' });
+const cookies    = cookieParser();
 
-app.get('/', (req, res) => res.send('Cab Connect Backend is running'));
 app.get('/health', (req, res) => res.status(200).json({ ok: true, pid: process.pid }));
+app.get('/', (req, res) => res.send('Cab Connect Backend is running'));
+app.use('/docs', lazySwagger);
 
-app.get('/docs', lazySwagger);
-app.get('/docs/*splat', lazySwagger);
+app.use('/rides',cookies, rideRoutes);
+app.use('/notifications', cookies, notificationRoutes);
 
-app.use('/users', userRoutes);
-app.use('/auth', authRoutes);
-app.use('/rides', rideRoutes);
-app.use('/admin', adminRoutes);
-app.use('/notifications', notificationRoutes);
-app.use('/reports', reportRoutes);
-app.use('/admin/reports', adminReportRoutes);
+app.use('/auth', cookies, jsonParser, authRoutes);
+app.use('/users', cookies, jsonParser, userRoutes);
+app.use('/admin',cookies, jsonParser, adminRoutes);
+app.use('/reports', cookies, jsonParser, reportRoutes);
+app.use('/admin/reports', cookies, jsonParser, adminReportRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

@@ -37,6 +37,8 @@ async function startServer() {
     await import('./workers/rideExpiry.worker.js');
 
     const server = http.createServer(app);
+    server.keepAliveTimeout = 65000;
+    server.headersTimeout   = 66000;
 
     const pubClient = createClient({ url: process.env.REDIS_URL });
     const subClient = pubClient.duplicate();

@@ -3,12 +3,13 @@ import mongoose from 'mongoose';
 export const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI, {
-      maxPoolSize: 100,
-      minPoolSize: 10,
-      maxIdleTimeMS: 30000,
+      maxPoolSize: 150,
+      minPoolSize: 20,
+      maxIdleTimeMS: 60000,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       heartbeatFrequencyMS: 10000,
+      compressors: ["zlib"],
     });
     console.log('MongoDB connected');
   } catch (error) {

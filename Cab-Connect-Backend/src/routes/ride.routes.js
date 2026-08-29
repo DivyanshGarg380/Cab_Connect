@@ -7,7 +7,7 @@ import banMiddleware from "../middleware/ban.middleware.js";
 import Message from '../models/Message.model.js';
 import User from '../models/User.model.js';
 import Notification from "../models/Notification.model.js";
-import { cache } from "../middleware/cache.middleware.js";
+import { cache, cacheWithAuth  } from "../middleware/cache.middleware.js";
 import { invalidateRideCache } from "../utils/cacheInvalidate.js";
 import { rideExpiryQueue } from "../queues/rideExpiry.queue.js";
 import { cancelRideExpiryJob } from '../utils/cancelRideExpiryJob.js';
@@ -360,7 +360,7 @@ router.get(
 router.get(
   '/:id',
   authMiddleware,
-  cache((req) => `rides:${req.params.id}`, 20),
+  cacheWithAuth((req) => `rides:${req.params.id}`, 20),
   async (req, res) => {
     try {
       const [ride] = await Ride.aggregate([
@@ -398,7 +398,7 @@ router.get(
 router.get(
   '/',
   authMiddleware,
-  cache((req) => {
+  cacheWithAuth((req) => {
     const page = parseInt(req.query.page) || 1;
     return `rides:all:page:${page}`;
   }, 10),
